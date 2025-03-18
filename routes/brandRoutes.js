@@ -4,10 +4,9 @@ const router = express.Router();
 
 // Create a new brand
 router.post("/", async (req, res) => {
-    console.log('here');
   try {
     const brand = await Brand.create(req.body);
-    res.status(201).json({ success: true, brand });
+    res.status(201).json({ success: true, brand: await Brand.findById(brand._id).select("-password") });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -16,7 +15,7 @@ router.post("/", async (req, res) => {
 // Get all brands
 router.get("/", async (req, res) => {
   try {
-    const brands = await Brand.find();
+    const brands = await Brand.find().select("-password");
     res.status(200).json({ success: true, brands });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -29,7 +28,7 @@ router.get("/:identifier", async (req, res) => {
     const { identifier } = req.params;
     const brand = await Brand.findOne({
       $or: [{ _id: identifier }, { email: identifier }],
-    });
+    }).select("-password");
 
     if (!brand) {
       return res.status(404).json({ success: false, message: "Brand not found" });
@@ -49,7 +48,7 @@ router.put("/:identifier", async (req, res) => {
       { $or: [{ _id: identifier }, { email: identifier }] },
       req.body,
       { new: true, runValidators: true }
-    );
+    ).select("-password");
 
     if (!updatedBrand) {
       return res.status(404).json({ success: false, message: "Brand not found" });
