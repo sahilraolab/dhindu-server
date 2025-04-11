@@ -78,7 +78,7 @@ const DiscountSchema = new mongoose.Schema(
         day: {
             type: String,
             enum: [
-                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
+                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday, all_week"
             ],
             required: true
         },

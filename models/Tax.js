@@ -13,7 +13,7 @@ const TaxSchema = new mongoose.Schema(
             type: Number,
             required: true,
             min: 0,
-            max: 100 // Assuming tax percentage (adjust if needed)
+            max: 100 // Assuming tax percentage
         },
         display_tax_name: {
             type: String,
@@ -22,12 +22,8 @@ const TaxSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["active", "inactive"], // Ensures consistent values
+            enum: ["active", "inactive"],
             default: "active"
-        },
-        apply_tax_on_all_outlets: {
-            type: Boolean,
-            default: false
         },
         brand_id: {
             type: mongoose.Schema.Types.ObjectId,
@@ -37,16 +33,14 @@ const TaxSchema = new mongoose.Schema(
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.apply_tax_on_all_outlets;
-            }
+            required: true
         }
     },
     { timestamps: true }
 );
 
 // **Indexes for performance & uniqueness**
-TaxSchema.index({ brand_id: 1, tax_name: 1 }, { unique: true }); // Ensures unique tax names per brand
+TaxSchema.index({ brand_id: 1, tax_name: 1 }, { unique: true });
 TaxSchema.index({ brand_id: 1 });
 TaxSchema.index({ outlet_id: 1 });
 

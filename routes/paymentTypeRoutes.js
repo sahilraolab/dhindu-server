@@ -1,16 +1,48 @@
 const express = require("express");
 const router = express.Router();
 const PaymentType = require("../models/PaymentType");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
-// Create PaymentType
-router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("payments_edit") || req.staff?.role === "admin")) {
+
+// Fetch PaymentTypes accessible to the current staff
+router.get("/accessible", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const { payment_name, status, apply_on_all_outlets, brand_id, outlet_id } = req.body;
+        const { brands, outlets } = req.staff;
+
+        console.log(brands)
+        console.log(outlets)
+
+        const paymentTypes = await PaymentType.find({
+            brand_id: { $in: brands },
+            outlet_id: { $in: outlets }
+        }).populate("brand_id").populate("outlet_id");
+
+        res.status(200).json({
+            message: "Accessible payment types fetched successfully",
+            paymentTypes,
+        });
+    } catch (error) {
+        console.error("Error fetching accessible payment types:", error);
+        res.status(500).json({
+            message: "Error fetching payment types",
+            error: error.message || error,
+        });
+    }
+});
+
+
+// Create PaymentType
+router.post("/create", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const { payment_name, status, brand_id, outlet_id } = req.body;
 
         // Check if the payment type name already exists for the brand
         const existingPaymentType = await PaymentType.findOne({ payment_name, brand_id });
@@ -22,7 +54,6 @@ router.post("/create", verifyToken, async (req, res) => {
         const newPaymentType = new PaymentType({
             payment_name,
             status,
-            apply_on_all_outlets,
             brand_id,
             outlet_id,
         });
@@ -37,12 +68,12 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update PaymentType
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("payments_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const { payment_name, status, apply_on_all_outlets, brand_id, outlet_id } = req.body;
+        const { payment_name, status, brand_id, outlet_id } = req.body;
         const paymentTypeId = req.params.id;
 
         // Check if the payment type exists
@@ -54,7 +85,6 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         // Update the payment type
         paymentType.payment_name = payment_name || paymentType.payment_name;
         paymentType.status = status || paymentType.status;
-        paymentType.apply_on_all_outlets = apply_on_all_outlets || paymentType.apply_on_all_outlets;
         paymentType.brand_id = brand_id || paymentType.brand_id;
         paymentType.outlet_id = outlet_id || paymentType.outlet_id;
 
@@ -68,20 +98,18 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete PaymentType
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("payments_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
         const paymentTypeId = req.params.id;
 
-        // Check if the payment type exists
         const paymentType = await PaymentType.findById(paymentTypeId);
         if (!paymentType) {
             return res.status(404).json({ message: "Payment Type not found" });
         }
 
-        // Delete the payment type
         await PaymentType.findByIdAndDelete(paymentTypeId);
         res.status(200).json({ message: "Payment Type deleted successfully" });
     } catch (error) {
@@ -92,7 +120,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch PaymentTypes (list all)
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("payments_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -107,14 +135,13 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single PaymentType
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("payments_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
         const paymentTypeId = req.params.id;
 
-        // Check if the payment type exists
         const paymentType = await PaymentType.findById(paymentTypeId).populate("brand_id").populate("outlet_id");
         if (!paymentType) {
             return res.status(404).json({ message: "Payment Type not found" });

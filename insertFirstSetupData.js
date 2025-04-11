@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const Owner = require("./models/Owner");
 const Brand = require("./models/Brand");
 const Staff = require("./models/Staff");
-const Role = require("./models/Role"); // Assuming Role model exists
+const Role = require("./models/Role");
 
 const insertFirstSetupData = async () => {
   try {
@@ -14,8 +14,18 @@ const insertFirstSetupData = async () => {
       phone: "+1 123-456-7890",
       status: "active",
     });
-
     console.log("✅ Owner inserted:", owner.email);
+
+    // ✅ Fetch "Admin" Role ID
+    let adminRole = await Role.findOne({ name: "Admin" });
+    if (!adminRole) {
+      adminRole = await Role.create({
+        name: "Admin",
+        default_permissions: ["manage_brands", "manage_staff", "view_reports"],
+      });
+    }
+
+    console.log("✅ Role inserted/found:", adminRole.name);
 
     // ✅ Insert Brand
     const brand = await Brand.create({
@@ -29,22 +39,13 @@ const insertFirstSetupData = async () => {
       license_no: "LIC987654321",
       food_license: "FSSAI123456",
       website: "https://sector17.com",
-      brand_address: {
-        city: "Toronto",
-        state: "Ontario",
-        country: "Canada",
-        code: "M5H 2N2",
-        street_address: "123 Queen Street W",
-      },
+      city: "Toronto",
+      state: "Ontario",
+      country: "Canada",
+      postal_code: "M5H 2N2",
+      street_address: "123 Queen Street W",
     });
-
     console.log("✅ Brand inserted:", brand.name);
-
-    // ✅ Fetch "Admin" Role ID
-    const adminRole = await Role.findOne({ name: "Admin" });
-    if (!adminRole) {
-      throw new Error("❌ Role 'Admin' not found! Ensure roles are inserted first.");
-    }
 
     // ✅ Hash password and PIN before saving Staff
     const hashedPassword = await bcrypt.hash("AdminPass123", 10);
@@ -64,7 +65,6 @@ const insertFirstSetupData = async () => {
       brands: [brand._id],
       outlets: [],
     });
-
     console.log("✅ Admin Staff inserted successfully.");
   } catch (error) {
     console.error("❌ Error inserting first setup data:", error);

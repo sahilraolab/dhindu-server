@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const BuyXGetYOffer = require("../models/BuyXGetYOffer");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Buy X Get Y Offer
 router.post("/create", verifyToken, async (req, res) => {

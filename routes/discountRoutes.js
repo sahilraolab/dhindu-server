@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const Discount = require("../models/Discount");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Discount
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("discounts_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

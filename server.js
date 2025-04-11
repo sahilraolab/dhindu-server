@@ -61,65 +61,6 @@ mongoose
     console.error("❌ MongoDB Connection Error:", err);
     process.exit(1);
   });
-  
-const insertFirstSetupData = async () => {
-  try {
-    // Insert Owner
-    const owner = await Owner.create({
-      name: "Karan Rao",
-      email: "karanrao@example.com",
-      password: "SecurePass123", // Ensure to hash passwords before using in production
-      phone: "+1 123-456-7890",
-      is_password_changed: false,
-      status: "active",
-    });
-
-    // Insert Brand
-    const brand = await Brand.create({
-      name: "Sector 17",
-      short_name: "Sector17",
-      email: "sector17@example.com",
-      phone: "+1 987-654-3210",
-      owner_id: owner._id,
-      status: "active",
-      gst_no: "GST123456789",
-      license_no: "LIC987654321",
-      food_license: "FSSAI123456",
-      website: "https://sector17.com",
-      brand_address: {
-        city: "Toronto",
-        state: "Ontario",
-        country: "Canada",
-        code: "M5H 2N2",
-        street_address: "123 Queen Street W",
-      },
-    });
-
-    // Insert Admin Staff
-    await Staff.create({
-      name: "Karan Rao",
-      email: "admin@sector17.com",
-      phone: "+1 555-555-5555",
-      password: "AdminPass123", // Ensure to hash passwords before using in production
-      pos_login_pin: "1234",
-      role: "Admin",
-      permissions: [
-        "dashboard_view", "orders_view", "orders_edit", "orders_delete",
-        "sales_view", "sales_create", "sales_edit", "sales_delete",
-        "customers_view", "customers_edit", "customers_delete",
-        "inventory_view", "inventory_edit", "inventory_delete",
-        "settings_manage", "reports_view", "reports_edit", "reports_delete",
-        "staff_manage"
-      ],
-      brands: [brand._id],
-      outlets: [],
-    });
-
-    console.log("✅ First setup data inserted successfully.");
-  } catch (error) {
-    console.error("❌ Error inserting first setup data:", error);
-  }
-};
 
 app.get("/", (req, res) => {
   res.send("✅ POS API is running...");
@@ -140,6 +81,11 @@ app.get("/validate_token", async (req, res) => {
       return res.status(404).json({ message: "Staff not found" });
     }
 
+    // Check if the staff is inactive
+    if (staff.status !== 'active') {
+      return res.status(403).json({ message: "Access denied. Staff is inactive." });
+    }
+
     res.json({ staff });
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });
@@ -153,10 +99,10 @@ app.use("/api/outlets", outletRoutes);
 app.use("/api/utils", rolesPermissionsRoutes);
 app.use("/api/taxes", taxRoutes);
 app.use("/api/tables", tableRoutes);
-app.use("/api/payment-types", paymentTypeRoutes);
-app.use("/api/order-types", orderTypeRoutes);
+app.use("/api/payment-type", paymentTypeRoutes);
+app.use("/api/order-type", orderTypeRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/menues", menuRoutes);
+app.use("/api/menus", menuRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/floors", floorRoutes);
 app.use("/api/discounts", discountRoutes);

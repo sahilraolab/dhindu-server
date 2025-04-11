@@ -1,7 +1,35 @@
 const express = require("express");
 const router = express.Router();
 const OrderType = require("../models/OrderType");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
+
+// Fetch OrderTypes accessible to the current staff
+router.get("/accessible", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("orders_view") || req.staff?.role === "admin")) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const { brands, outlets } = req.staff;
+
+        const orderTypes = await OrderType.find({
+            brand_id: { $in: brands },
+            outlet_id: { $in: outlets }
+        }).populate("brand_id").populate("outlet_id");
+
+        res.status(200).json({
+            message: "Accessible order types fetched successfully",
+            orderTypes,
+        });
+    } catch (error) {
+        console.error("Error fetching accessible order types:", error);
+        res.status(500).json({
+            message: "Error fetching order types",
+            error: error.message || error,
+        });
+    }
+});
+
 
 // Create OrderType
 router.post("/create", verifyToken, async (req, res) => {
@@ -10,7 +38,7 @@ router.post("/create", verifyToken, async (req, res) => {
     }
 
     try {
-        const { name, category, status, apply_on_all_outlets, brand_id, outlet_id } = req.body;
+        const { name, category, status, brand_id, outlet_id } = req.body;
 
         // Check if the order type name already exists for the brand
         const existingOrderType = await OrderType.findOne({ name, brand_id });
@@ -23,7 +51,6 @@ router.post("/create", verifyToken, async (req, res) => {
             name,
             category,
             status,
-            apply_on_all_outlets,
             brand_id,
             outlet_id,
         });
@@ -43,7 +70,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
     }
 
     try {
-        const { name, category, status, apply_on_all_outlets, brand_id, outlet_id } = req.body;
+        const { name, category, status, brand_id, outlet_id } = req.body;
         const orderTypeId = req.params.id;
 
         // Check if the order type exists
@@ -56,7 +83,6 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         orderType.name = name || orderType.name;
         orderType.category = category || orderType.category;
         orderType.status = status || orderType.status;
-        orderType.apply_on_all_outlets = apply_on_all_outlets || orderType.apply_on_all_outlets;
         orderType.brand_id = brand_id || orderType.brand_id;
         orderType.outlet_id = outlet_id || orderType.outlet_id;
 

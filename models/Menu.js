@@ -7,16 +7,10 @@ const MenuSchema = new mongoose.Schema(
             ref: "Brand",
             required: true
         },
-        apply_on_all_outlets: {
-            type: Boolean,
-            default: false
-        },
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.apply_on_all_outlets; // Required if NOT applying to all outlets
-            }
+            required: true
         },
         name: {
             type: String,
@@ -30,31 +24,29 @@ const MenuSchema = new mongoose.Schema(
             enum: ["active", "inactive"],
             default: "active"
         },
-        apply_on_all_order_types: {
+        pos_menu: {
             type: Boolean,
-            default: false
+            default: false,
+            required: true
         },
-        order_types: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "OrderType",
-                required: function () {
-                    return !this.apply_on_all_order_types; // Required if NOT applying to all order types
-                }
-            }
-        ]
+        digital_menu: {
+            type: Boolean,
+            default: false,
+            required: true
+        },
+        third_party_menu: {
+            type: Boolean,
+            default: false,
+            required: true
+        },
     },
     { timestamps: true }
 );
 
-// **Indexes for optimized queries & uniqueness**
+// **Index for optimized queries & uniqueness**
 MenuSchema.index(
     { brand_id: 1, outlet_id: 1, name: 1 },
-    { unique: true, partialFilterExpression: { apply_on_all_outlets: false } }
-);
-MenuSchema.index(
-    { brand_id: 1, name: 1 },
-    { unique: true, partialFilterExpression: { apply_on_all_outlets: true } }
+    { unique: true }
 );
 
 module.exports = mongoose.model("Menu", MenuSchema);

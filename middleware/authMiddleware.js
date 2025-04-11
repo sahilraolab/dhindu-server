@@ -20,7 +20,11 @@ exports.verifyToken = async (req, res, next) => {
             return res.status(401).json({ message: "Staff not found!" });
         }
 
-        console.log("Staff details:", req.staff); // Optional, can be removed in production
+        // Check if the staff is inactive
+        if (req.staff.status !== 'active') {
+            return res.status(403).json({ message: "Access denied. Staff is inactive." });
+        }
+
         next(); // Proceed to the next middleware/controller
 
     } catch (error) {

@@ -12,7 +12,7 @@ router.post("/", verifyToken, async (req, res) => {
             city, state, country, postal_code, street_address, status
         } = req.body;
 
-        if (!req.staff || (!req.staff.permissions.includes("staff_manage") || req.staff.role !== "admin")) {
+        if (!req.staff || (!req.staff.permissions.includes("staff_manage"))) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -102,7 +102,7 @@ router.get("/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Brand not found!" });
         }
 
-        if (!req.staff.brands.includes(req.params.id) || req.staff.role !== "admin") {
+        if (!req.staff.brands.includes(req.params.id)) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -122,8 +122,10 @@ router.put("/:id", verifyToken, async (req, res) => {
             city, state, country, postal_code, street_address, status
         } = req.body;
 
+        console.log(req.staff.permissions);
+
         // Check if user has permission
-        if (!req.staff || (!req.staff.permissions.includes("staff_manage") || req.staff.role !== "admin")) {
+        if (!req.staff || (!req.staff.permissions.includes("staff_manage"))) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 

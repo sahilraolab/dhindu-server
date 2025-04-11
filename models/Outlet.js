@@ -9,7 +9,10 @@ const OutletSchema = new mongoose.Schema(
     email: { type: String, required: true }, // Outlet email (Unique within a brand)
     phone: { type: String, required: true }, // Outlet phone number (Unique within a brand)
 
-    timezone: { type: String, required: true }, // Timezone of the outlet
+    timezone: {
+      label: { type: String, required: true },
+      value: { type: String, required: true },
+    },
     opening_time: { type: String, required: true }, // Opening time (HH:mm format)
     closing_time: { type: String, required: true }, // Closing time (HH:mm format)
 

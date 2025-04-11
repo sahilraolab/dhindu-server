@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Addon = require("../models/Addon");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Addon
 router.post("/create", verifyToken, async (req, res) => {

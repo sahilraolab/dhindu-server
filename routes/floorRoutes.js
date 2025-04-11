@@ -1,11 +1,70 @@
 const express = require("express");
 const router = express.Router();
 const Floor = require("../models/Floor");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
+
+// Fetch Only Floor Name and ID for Staff's Brands & Outlets
+router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const staffBrands = req.staff.brands || [];
+        const staffOutlets = req.staff.outlets || [];
+
+        if (!staffBrands.length || !staffOutlets.length) {
+            return res.status(200).json({ message: "No brands or outlets assigned to staff", floors: [] });
+        }
+
+        const floors = await Floor.find(
+            {
+                brand_id: { $in: staffBrands },
+                outlet_id: { $in: staffOutlets },
+            },
+            "_id floor_name" // <-- Only select _id and floor_name
+        );
+
+        res.status(200).json({ message: "Floors fetched successfully", floors });
+    } catch (error) {
+        console.error("Error fetching staff floor shorts:", error);
+        res.status(500).json({ message: "Error fetching staff floors", error });
+    }
+});
+
+
+// Fetch Floors for Staff's Brands & Outlets
+router.get("/staff-floors", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const staffBrands = req.staff.brands || [];
+        const staffOutlets = req.staff.outlets || [];
+
+        if (!staffBrands.length || !staffOutlets.length) {
+            return res.status(200).json({ message: "No brands or outlets assigned to staff", floors: [] });
+        }
+
+        const floors = await Floor.find({
+            brand_id: { $in: staffBrands },
+            outlet_id: { $in: staffOutlets },
+        })
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(200).json({ message: "Floors fetched successfully", floors });
+    } catch (error) {
+        console.error("Error fetching staff floors:", error);
+        res.status(500).json({ message: "Error fetching staff floors", error });
+    }
+});
+
 
 // Create Floor
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("floor_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -29,7 +88,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Floor
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("floor_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

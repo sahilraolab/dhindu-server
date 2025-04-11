@@ -1,11 +1,41 @@
 const express = require("express");
 const router = express.Router();
 const Table = require("../models/Table");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
+
+// Fetch Tables for Staff's Brands & Outlets
+router.get("/staff-tables", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const staffBrands = req.staff.brands || [];
+        const staffOutlets = req.staff.outlets || [];
+
+        if (!staffBrands.length || !staffOutlets.length) {
+            return res.status(200).json({ message: "No brands or outlets assigned to staff", tables: [] });
+        }
+
+        const tables = await Table.find({
+            brand_id: { $in: staffBrands },
+            outlet_id: { $in: staffOutlets },
+        })
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("floor_id");
+
+        res.status(200).json({ message: "Tables fetched successfully", tables });
+    } catch (error) {
+        console.error("Error fetching staff tables:", error);
+        res.status(500).json({ message: "Error fetching staff tables", error });
+    }
+});
+
 
 // Create Table
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -29,7 +59,14 @@ router.post("/create", verifyToken, async (req, res) => {
         });
 
         await newTable.save();
-        res.status(201).json({ message: "Table created successfully", table: newTable });
+
+        // Populate the newly created table
+        const populatedTable = await Table.findById(newTable._id)
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("floor_id");
+
+        res.status(201).json({ message: "Table created successfully", table: populatedTable });
     } catch (error) {
         console.error("Error creating table:", error);
         res.status(500).json({ message: "Error creating table", error });
@@ -38,7 +75,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Table
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -50,7 +87,13 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
         Object.assign(table, req.body); // Update fields
         await table.save();
-        res.status(200).json({ message: "Table updated successfully", table });
+
+        const updatedTable = await Table.findById(table._id)
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("floor_id");
+
+        res.status(200).json({ message: "Table updated successfully", table: updatedTable });
     } catch (error) {
         console.error("Error updating table:", error);
         res.status(500).json({ message: "Error updating table", error });
@@ -59,7 +102,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Table
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("table_delete"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -79,7 +122,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Tables
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("table_view"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -98,7 +141,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Table
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("table_view"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

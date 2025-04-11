@@ -10,7 +10,7 @@ router.post("/", verifyToken, async (req, res) => {
     try {
         const { brand_id, name, code, email, phone, timezone, opening_time, closing_time, website, street, city, state, country, postal_code } = req.body;
 
-        if (!req.staff?.permissions?.includes("staff_manage") || req.staff?.role !== "admin") {
+        if (!req.staff?.permissions?.includes("staff_manage")) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -108,7 +108,7 @@ router.put("/:id", verifyToken, async (req, res) => {
         const outlet = await Outlet.findById(id);
         if (!outlet) return res.status(404).json({ message: "Outlet not found!" });
 
-        if (req.staff.role !== "admin" || !req.staff.outlets.map(o => o.toString()).includes(id)) {
+        if (!req.staff?.permissions?.includes("staff_manage") && !req.staff.outlets.map(o => o.toString()).includes(id)) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 

@@ -13,19 +13,19 @@ router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
         const staff = await Staff.findOne({ email }).select("+password"); // Ensure password field is included
-
+        console.log(staff);
         if (!staff) {
             return res.status(400).json({ message: "Invalid email or password" });
         }
-
         const isMatch = await bcrypt.compare(password, staff.password);
+        console.log(isMatch);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid email or password" });
         }
 
         // Generate JWT token
         const token = jwt.sign({ id: staff._id, role: staff.role }, JWT_SECRET, { expiresIn: "7d" });
-
+        console.log(token);
         res.cookie("token", token, {
             httpOnly: true, // Prevents JavaScript access (XSS protection)
             secure: process.env.NODE_ENV === "production", // Only HTTPS in production
@@ -44,24 +44,29 @@ router.post("/create", verifyToken, async (req, res) => {
     try {
         const { name, email, phone, password, pos_login_pin, role, permissions, brands, outlets } = req.body;
 
-        // Hash password before saving
+        // Hash password before saving (required)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Hash POS PIN before saving
-        const hashedPin = await bcrypt.hash(pos_login_pin, salt);
-
-        const newStaff = new Staff({
+        // Prepare staff data
+        const staffData = {
             name,
             email,
             phone,
             password: hashedPassword,
-            pos_login_pin: hashedPin,
             role,
             permissions,
             brands,
             outlets,
-        });
+        };
+
+        // Hash POS PIN only if it's provided
+        if (pos_login_pin) {
+            const hashedPin = await bcrypt.hash(pos_login_pin, salt);
+            staffData.pos_login_pin = hashedPin;
+        }
+
+        const newStaff = new Staff(staffData);
 
         await newStaff.save();
         res.status(201).json({ message: "Staff created successfully", staff: newStaff });
@@ -84,6 +89,8 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         if (updates.pos_login_pin) {
             const salt = await bcrypt.genSalt(10);
             updates.pos_login_pin = await bcrypt.hash(updates.pos_login_pin, salt);
+        } else {
+            delete updates.pos_login_pin; // Prevent clearing it accidentally
         }
 
         const updatedStaff = await Staff.findByIdAndUpdate(staffId, updates, { new: true });
@@ -96,6 +103,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         res.status(500).json({ message: "Error updating staff", error });
     }
 });
+
 
 // **4. Delete Staff**
 router.delete("/delete/:id", verifyToken, async (req, res) => {
@@ -150,5 +158,41 @@ router.get("/staff", verifyToken, async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 });
+
+// **7. Fetch Staff Based on Current User's Brands and Outlets (if staff_manage permission exists)**
+router.get("/staff/authorized", verifyToken, async (req, res) => {
+    try {
+        const currentUserId = req.staff._id;
+
+        const currentUser = await Staff.findById(currentUserId).select("+password");
+
+        if (!currentUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Check if the user has staff_manage permission
+        if (!currentUser.permissions.includes("staff_manage")) {
+            return res.status(403).json({ message: "Access denied: staff_manage permission required" });
+        }
+
+        // Fetch staff with matching brands and outlets
+        const staff = await Staff.find({
+            brands: { $in: currentUser.brands },
+            outlets: { $in: currentUser.outlets },
+        })
+            .populate("brands")
+            .populate("outlets")
+            .populate("role") // 👈 Add this line to populate the role info
+            .select("-password")
+            .select("-pos_login_pin");
+
+        res.status(200).json({ success: true, data: staff });
+    } catch (error) {
+        console.error("Error fetching authorized staff:", error);
+        res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+
+
 
 module.exports = router;

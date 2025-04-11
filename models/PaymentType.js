@@ -14,10 +14,6 @@ const PaymentTypeSchema = new mongoose.Schema(
             enum: ["active", "inactive"], // Only allows "active" or "inactive"
             default: "active"
         },
-        apply_on_all_outlets: {
-            type: Boolean,
-            default: false
-        },
         brand_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Brand",
@@ -26,9 +22,7 @@ const PaymentTypeSchema = new mongoose.Schema(
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.apply_on_all_outlets;
-            }
+            required: true
         }
     },
     { timestamps: true }

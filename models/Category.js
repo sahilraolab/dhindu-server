@@ -7,16 +7,10 @@ const CategorySchema = new mongoose.Schema(
             ref: "Brand",
             required: true
         },
-        apply_on_all_outlets: {
-            type: Boolean,
-            default: false
-        },
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.apply_on_all_outlets; // Required if not applying to all outlets
-            }
+            required: true
         },
         name: {
             type: String,
@@ -30,24 +24,24 @@ const CategorySchema = new mongoose.Schema(
             enum: [
                 "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
             ],
-            required: true
+            required: false
         },
         start_time: {
             type: String,
-            required: true,
+            required: false,
             validate: {
                 validator: function (v) {
-                    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v); // HH:mm format validation
+                    return !v || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
                 },
                 message: props => `${props.value} is not a valid time format (HH:mm)!`
             }
         },
         end_time: {
             type: String,
-            required: true,
+            required: false,
             validate: {
                 validator: function (v) {
-                    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
+                    return !v || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
                 },
                 message: props => `${props.value} is not a valid time format (HH:mm)!`
             }
@@ -61,14 +55,9 @@ const CategorySchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// **Indexes for optimized queries & uniqueness**
+// Unique compound index
 CategorySchema.index(
-    { brand_id: 1, outlet_id: 1, name: 1, day: 1 },
-    { unique: true, partialFilterExpression: { apply_on_all_outlets: false } }
-);
-CategorySchema.index(
-    { brand_id: 1, name: 1, day: 1 },
-    { unique: true, partialFilterExpression: { apply_on_all_outlets: true } }
+    { brand_id: 1, outlet_id: 1, name: 1, day: 1 }
 );
 
 module.exports = mongoose.model("Category", CategorySchema);

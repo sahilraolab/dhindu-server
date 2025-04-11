@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Item = require("../models/Item");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Item
 router.post("/create", verifyToken, async (req, res) => {
@@ -41,7 +41,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Item not found" });
         }
 
-        Object.assign(item, req.body); // Update fields
+        Object.assign(item, req.body);
         await item.save();
         res.status(200).json({ message: "Item updated successfully", item });
     } catch (error) {
@@ -70,51 +70,24 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     }
 });
 
-// Fetch All Items
-router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("items_view") || req.staff?.role === "admin")) {
-        return res.status(403).json({ message: "Access denied! Unauthorized user." });
-    }
-
+// Fetch items by menu_id with populated category (_id and name only)
+router.get("/menu/:menu_id", verifyToken, async (req, res) => {
     try {
-        const items = await Item.find()
-            .populate("menu_id")
-            .populate("brand_id")
-            .populate("outlet_id")
-            .populate("category_id")
-            .populate("order_types")
-            .populate("addons");
+        const { menu_id } = req.params;
 
-        res.status(200).json({ message: "Items fetched successfully", items });
+        const items = await Item.find({ menu_id })
+            .populate({
+                path: "category_id",
+                select: "_id name"
+            });
+
+        res.status(200).json({
+            message: "Items fetched successfully",
+            items
+        });
     } catch (error) {
-        console.error("Error fetching items:", error);
+        console.error("Error fetching items by menu ID:", error);
         res.status(500).json({ message: "Error fetching items", error });
-    }
-});
-
-// Fetch Single Item
-router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("items_view") || req.staff?.role === "admin")) {
-        return res.status(403).json({ message: "Access denied! Unauthorized user." });
-    }
-
-    try {
-        const item = await Item.findById(req.params.id)
-            .populate("menu_id")
-            .populate("brand_id")
-            .populate("outlet_id")
-            .populate("category_id")
-            .populate("order_types")
-            .populate("addons");
-
-        if (!item) {
-            return res.status(404).json({ message: "Item not found" });
-        }
-
-        res.status(200).json({ message: "Item fetched successfully", item });
-    } catch (error) {
-        console.error("Error fetching item:", error);
-        res.status(500).json({ message: "Error fetching item", error });
     }
 });
 
