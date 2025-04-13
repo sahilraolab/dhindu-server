@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const PaymentTypeSchema = new mongoose.Schema(
     {
-        payment_name: {
+        name: {
             type: String,
             required: true,
             trim: true,
@@ -29,7 +29,7 @@ const PaymentTypeSchema = new mongoose.Schema(
 );
 
 // Unique payment name per brand
-PaymentTypeSchema.index({ brand_id: 1, payment_name: 1 }, { unique: true });
+PaymentTypeSchema.index({ brand_id: 1, name: 1 }, { unique: true });
 
 // Optimize queries
 PaymentTypeSchema.index({ brand_id: 1 });

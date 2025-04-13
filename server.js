@@ -35,11 +35,19 @@ const { default: axios } = require("axios");
 
 const app = express();
 
+const allowedOrigins = process.env.WHITELISTED_ORIGINS?.split(",") || [];
+
 app.use(cors({
-  origin: "http://localhost:3000",  // Allow requests from frontend
-  credentials: true,  // Allow cookies, tokens, and sessions
-  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only required methods
-  allowedHeaders: ["Content-Type", "Authorization"],  // Limit allowed headers
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 
