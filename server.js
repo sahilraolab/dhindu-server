@@ -31,7 +31,6 @@ const addonRoutes = require("./routes/addonRoutes");
 
 const { insertPermissions, insertDefaultRoles } = require("./permissionsRolesSetup");
 const { insertFirstSetupData } = require("./insertFirstSetupData");
-const { default: axios } = require("axios");
 
 const app = express();
 
