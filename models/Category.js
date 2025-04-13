@@ -12,6 +12,11 @@ const CategorySchema = new mongoose.Schema(
             ref: "Outlet",
             required: true
         },
+        menu_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Menu",
+            required: true
+        },
         name: {
             type: String,
             required: true,
@@ -55,9 +60,9 @@ const CategorySchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Unique compound index
+// Updated compound index to include menu_id
 CategorySchema.index(
-    { brand_id: 1, outlet_id: 1, name: 1, day: 1 }
+    { brand_id: 1, outlet_id: 1, menu_id: 1, name: 1, day: 1 }
 );
 
 module.exports = mongoose.model("Category", CategorySchema);

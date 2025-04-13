@@ -15,7 +15,10 @@ router.get("/accessible", verifyToken, async (req, res) => {
         const categories = await Category.find({
             brand_id: { $in: brands },
             outlet_id: { $in: outlets }
-        }).populate("brand_id").populate("outlet_id");
+        })
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("menu_id");
 
         res.status(200).json({
             message: "Accessible categories fetched successfully",
@@ -37,25 +40,35 @@ router.post("/create", verifyToken, async (req, res) => {
     }
 
     try {
-        const { brand_id, outlet_id, name, day, start_time, end_time, status } = req.body;
+        const { brand_id, outlet_id, menu_id, name, day, start_time, end_time, status } = req.body;
 
-        if (!brand_id || !outlet_id || !name) {
-            return res.status(400).json({ message: "brand_id, outlet_id, and name are required fields." });
+        if (!brand_id || !outlet_id || !menu_id || !name) {
+            return res.status(400).json({ message: "brand_id, outlet_id, menu_id, and name are required fields." });
         }
 
-        // Check if category already exists (only if day is present)
+        // Check if category already exists (with same menu, name, and day)
         let existingCategory = null;
         if (day) {
-            existingCategory = await Category.findOne({ brand_id, outlet_id, name, day });
+            existingCategory = await Category.findOne({ brand_id, outlet_id, menu_id, name, day });
         }
 
         if (existingCategory) {
             return res.status(400).json({
-                message: "Category with this name already exists for this brand/outlet on this day."
+                message: "Category with this name already exists for this brand/outlet/menu on this day."
             });
         }
 
-        const newCategory = new Category({ brand_id, outlet_id, name, day, start_time, end_time, status });
+        const newCategory = new Category({
+            brand_id,
+            outlet_id,
+            menu_id,
+            name,
+            day,
+            start_time,
+            end_time,
+            status
+        });
+
         await newCategory.save();
 
         res.status(201).json({ message: "Category created successfully", category: newCategory });
@@ -77,7 +90,26 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Category not found" });
         }
 
-        // Update fields
+        // Optional: If name, day, or menu_id changes, check uniqueness again
+        const { brand_id, outlet_id, menu_id, name, day } = req.body;
+
+        if (brand_id && outlet_id && menu_id && name && day) {
+            const existingCategory = await Category.findOne({
+                _id: { $ne: category._id },
+                brand_id,
+                outlet_id,
+                menu_id,
+                name,
+                day
+            });
+
+            if (existingCategory) {
+                return res.status(400).json({
+                    message: "Another category with this name already exists for this brand/outlet/menu on this day."
+                });
+            }
+        }
+
         Object.assign(category, req.body);
         await category.save();
 

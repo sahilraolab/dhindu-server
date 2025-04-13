@@ -14,7 +14,7 @@ exports.verifyToken = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Fetch staff details from the database
-        req.staff = await Staff.findById(decoded.id).select("-password"); // Exclude password from staff info
+        req.staff = await Staff.findById(decoded.id).select("-password").populate("role"); // Exclude password from staff info
 
         if (!req.staff) {
             return res.status(401).json({ message: "Staff not found!" });

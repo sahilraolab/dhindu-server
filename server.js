@@ -74,8 +74,10 @@ app.get("/validate_token", async (req, res) => {
     // Verify the JWT token
     const decoded = jwt.verify(token, "your_secret_key");
 
-    // Fetch staff details from the database
-    const staff = await Staff.findById(decoded.id).select("-password"); // Exclude password for security
+    // Fetch staff details from the database and populate the role field
+    const staff = await Staff.findById(decoded.id)
+      .select("-password") // Exclude password for security
+      .populate("role"); // Populate the role field with full role info
 
     if (!staff) {
       return res.status(404).json({ message: "Staff not found" });
@@ -90,6 +92,20 @@ app.get("/validate_token", async (req, res) => {
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });
   }
+});
+
+
+app.post("/api/staff/logout", (req, res) => {
+  // Clear the token from the cookies
+  res.clearCookie("token", {
+    httpOnly: true, // Ensures that the cookie is not accessible via JavaScript
+    secure: process.env.NODE_ENV === "production", // Set to true if your app is served over HTTPS
+    sameSite: "Strict", // Prevents sending cookies with cross-site requests
+    path: "/",
+  });
+
+  // Send a response indicating the user has logged out
+  res.json({ message: "Logged out successfully" });
 });
 
 

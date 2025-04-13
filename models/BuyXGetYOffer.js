@@ -10,13 +10,7 @@ const BuyXGetYSchema = new mongoose.Schema(
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.apply_on_all_outlets; // Required if not applied to all outlets
-            }
-        },
-        apply_on_all_outlets: {
-            type: Boolean,
-            default: false
+            required: true
         },
         name: {
             type: String,
@@ -25,76 +19,40 @@ const BuyXGetYSchema = new mongoose.Schema(
             minlength: 3,
             maxlength: 100
         },
+        menu_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Menu",
+            required: true
+        },
+        buy_item: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Item",
+            required: true
+        },
         buy_quantity: {
             type: Number,
             required: true,
-            min: 1 // Minimum 1 item required to trigger the offer
+            min: 1
         },
-        buy_items: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Item",
-                required: function () {
-                    return !this.apply_on_all_items;
-                }
-            }
-        ],
-        apply_on_all_items: {
-            type: Boolean,
-            default: false
-        },
-        buy_categories: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Category",
-                required: function () {
-                    return !this.apply_on_all_categories;
-                }
-            }
-        ],
-        apply_on_all_categories: {
-            type: Boolean,
-            default: false
-        },
-        buy_menus: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Menu",
-                required: function () {
-                    return !this.apply_on_all_menus;
-                }
-            }
-        ],
-        apply_on_all_menus: {
-            type: Boolean,
-            default: false
+        get_item: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Item",
+            required: true
         },
         get_quantity: {
             type: Number,
             required: true,
-            min: 1 // Minimum 1 free item required
+            min: 1
         },
-        get_items: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Item",
-                required: true // Required as free item(s) must be specified
-            }
-        ],
-        order_types: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "OrderType"
-            }
-        ],
-        apply_on_all_order_types: {
-            type: Boolean,
-            default: false
+        rate: {
+            type: Number,
+            required: true,
+            min: 0
         },
         day: {
             type: String,
             enum: [
-                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
+                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "all_week"
             ],
             required: true
         },
@@ -127,7 +85,7 @@ const BuyXGetYSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// **Indexes for Optimized Queries & Uniqueness**
+// Unique index
 BuyXGetYSchema.index({ brand_id: 1, outlet_id: 1, name: 1, day: 1 }, { unique: true });
 
 module.exports = mongoose.model("BuyXGetYOffer", BuyXGetYSchema);

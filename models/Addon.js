@@ -17,64 +17,43 @@ const AddonSchema = new mongoose.Schema(
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: function () {
-                return !this.all_outlets; // Required if NOT applying to all outlets
-            }
+            required: true
         },
         menu_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Menu",
-            required: function () {
-                return !this.all_menus; // Required if NOT applying to all menus
-            }
+            required: false // made optional
         },
         category_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
-            required: function () {
-                return !this.all_categories; // Required if NOT applying to all categories
-            }
+            required: false // made optional
         },
         items: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Item",
-                required: function () {
-                    return !this.all_items; // Required if NOT applying to all items
-                }
+                ref: "Item"
             }
         ],
+        all_items: {
+            type: Boolean,
+            default: false
+        },
         price: {
             type: Number,
             required: true,
-            min: 0 // Price cannot be negative
+            min: 0
         },
         status: {
             type: String,
             enum: ["active", "inactive"],
             default: "active"
-        },
-        all_items: {
-            type: Boolean,
-            default: false // If true, applies to all items
-        },
-        all_outlets: {
-            type: Boolean,
-            default: false // If true, applies to all outlets
-        },
-        all_menus: {
-            type: Boolean,
-            default: false // If true, applies to all menus
-        },
-        all_categories: {
-            type: Boolean,
-            default: false // If true, applies to all categories
         }
     },
     { timestamps: true }
 );
 
-// **Indexes for optimized queries & uniqueness**
+// Index to ensure unique name per outlet
 AddonSchema.index({ brand_id: 1, outlet_id: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model("Addon", AddonSchema);

@@ -9,7 +9,22 @@ const defaultPermissions = [
   { category: "Inventory", options: ["inventory_view", "inventory_edit", "inventory_delete"] },
   { category: "Settings", options: ["settings_manage"] },
   { category: "Reports", options: ["reports_view", "reports_edit", "reports_delete"] },
-  { category: "Staff Management", options: ["staff_manage"] }
+  { category: "Staff Management", options: ["staff_manage"] },
+  {
+    category: "Brand Configuration",
+    options: [
+      "brand_manage",
+      "outlet_manage",
+      "order_type_manage",
+      "payment_type_manage",
+      "tax_manage",
+      "table_manage",
+      "discount_manage",
+      "buyxgety_offer_manage",
+      "menu_manage",
+      "whatsapp_manage",
+    ]
+  }
 ];
 
 const defaultRoles = [
@@ -21,7 +36,10 @@ const defaultRoles = [
       "customers_view", "customers_edit", "customers_delete",
       "inventory_view", "inventory_edit", "inventory_delete",
       "settings_manage", "reports_view", "reports_edit", "reports_delete",
-      "staff_manage"
+      "staff_manage",
+      "brand_manage", "outlet_manage", "order_type_manage", "payment_type_manage",
+      "tax_manage", "table_manage", "discount_manage", "buyxgety_offer_manage",
+      "menu_manage", "whatsapp_manage"
     ],
   },
   {
@@ -31,7 +49,9 @@ const defaultRoles = [
       "sales_view", "sales_create", "sales_edit",
       "customers_view", "customers_edit",
       "inventory_view", "inventory_edit",
-      "reports_view", "reports_edit"
+      "reports_view", "reports_edit",
+      "outlet_manage", "order_type_manage", "payment_type_manage",
+      "discount_manage", "menu_manage", "whatsapp_manage"
     ],
   },
   {
@@ -45,7 +65,8 @@ const defaultRoles = [
     name: "Inventory Manager",
     default_permissions: [
       "inventory_view", "inventory_edit", "inventory_delete",
-      "reports_view"
+      "reports_view",
+      "menu_manage"
     ],
   },
   {
