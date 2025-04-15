@@ -26,7 +26,8 @@ const FloorSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// **Indexes for Optimized Queries**
+// Indexes
 FloorSchema.index({ brand_id: 1, outlet_id: 1, status: 1 });
+FloorSchema.index({ outlet_id: 1, floor_name: 1 }, { unique: true }); // 👈 Enforces uniqueness
 
 module.exports = mongoose.model("Floor", FloorSchema);

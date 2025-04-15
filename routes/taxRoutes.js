@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Tax = require("../models/Tax");
 const { verifyToken } = require("../middleware/authMiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const { validateCreateTax, validateUpdateTax } = require("../validators/taxValidator");
+
 
 // Fetch Taxes for current staff's brands & outlets
 router.get("/accessible", verifyToken, async (req, res) => {
@@ -31,7 +34,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
 });
 
 // Create Tax
-router.post("/create", verifyToken, async (req, res) => {
+router.post("/create", verifyToken, validateCreateTax, validateRequest, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
@@ -62,7 +65,7 @@ router.post("/create", verifyToken, async (req, res) => {
 });
 
 // Update Tax
-router.put("/update/:id", verifyToken, async (req, res) => {
+router.put("/update/:id", verifyToken, validateUpdateTax, validateRequest, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }

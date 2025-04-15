@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Floor = require("../models/Floor");
 const { verifyToken } = require("../middleware/authMiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const { floorCreateValidation, floorUpdateValidation } = require("../validators/floorValidator");
 
 // Fetch Only Floor Name and ID for Staff's Brands & Outlets
 router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
@@ -22,7 +24,7 @@ router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
                 brand_id: { $in: staffBrands },
                 outlet_id: { $in: staffOutlets },
             },
-            "_id floor_name" // <-- Only select _id and floor_name
+            "_id floor_name"
         );
 
         res.status(200).json({ message: "Floors fetched successfully", floors });
@@ -32,8 +34,7 @@ router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
     }
 });
 
-
-// Fetch Floors for Staff's Brands & Outlets
+// Fetch Floors with populated brand and outlet
 router.get("/staff-floors", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
@@ -61,9 +62,8 @@ router.get("/staff-floors", verifyToken, async (req, res) => {
     }
 });
 
-
-// Create Floor
-router.post("/create", verifyToken, async (req, res) => {
+// Create Floor with uniqueness check
+router.post("/create", verifyToken, floorCreateValidation, validateRequest, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
@@ -71,36 +71,62 @@ router.post("/create", verifyToken, async (req, res) => {
     try {
         const { brand_id, outlet_id, floor_name, status } = req.body;
 
-        const newFloor = new Floor({
-            brand_id,
-            outlet_id,
-            floor_name,
-            status
-        });
+        // ✅ Check if floor name already exists for the outlet
+        const existingFloor = await Floor.findOne({ outlet_id, floor_name });
+        if (existingFloor) {
+            return res.status(400).json({ message: "A floor with the same name already exists in this outlet." });
+        }
 
+        const newFloor = new Floor({ brand_id, outlet_id, floor_name, status });
         await newFloor.save();
-        res.status(201).json({ message: "Floor created successfully", floor: newFloor });
+
+        const populatedFloor = await Floor.findById(newFloor._id)
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(201).json({ message: "Floor created successfully", floor: populatedFloor });
     } catch (error) {
         console.error("Error creating floor:", error);
         res.status(500).json({ message: "Error creating floor", error });
     }
 });
 
-// Update Floor
-router.put("/update/:id", verifyToken, async (req, res) => {
+// Update Floor with uniqueness check
+router.put("/update/:id", verifyToken, floorUpdateValidation, validateRequest, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const floor = await Floor.findById(req.params.id);
+        const { floor_name, outlet_id } = req.body;
+        const { id } = req.params;
+
+        const floor = await Floor.findById(id);
         if (!floor) {
             return res.status(404).json({ message: "Floor not found" });
         }
 
-        Object.assign(floor, req.body); // Update fields
+        // ✅ Check for duplicate floor name in same outlet (excluding current floor)
+        if (floor_name && outlet_id) {
+            const duplicate = await Floor.findOne({
+                _id: { $ne: id },
+                outlet_id,
+                floor_name
+            });
+
+            if (duplicate) {
+                return res.status(400).json({ message: "Another floor with the same name exists in this outlet." });
+            }
+        }
+
+        Object.assign(floor, req.body);
         await floor.save();
-        res.status(200).json({ message: "Floor updated successfully", floor });
+
+        const populatedFloor = await Floor.findById(floor._id)
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(200).json({ message: "Floor updated successfully", floor: populatedFloor });
     } catch (error) {
         console.error("Error updating floor:", error);
         res.status(500).json({ message: "Error updating floor", error });
@@ -124,46 +150,6 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     } catch (error) {
         console.error("Error deleting floor:", error);
         res.status(500).json({ message: "Error deleting floor", error });
-    }
-});
-
-// Fetch All Floors
-router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("floor_view") || req.staff?.role === "admin")) {
-        return res.status(403).json({ message: "Access denied! Unauthorized user." });
-    }
-
-    try {
-        const floors = await Floor.find()
-            .populate("brand_id")
-            .populate("outlet_id");
-
-        res.status(200).json({ message: "Floors fetched successfully", floors });
-    } catch (error) {
-        console.error("Error fetching floors:", error);
-        res.status(500).json({ message: "Error fetching floors", error });
-    }
-});
-
-// Fetch Single Floor
-router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("floor_view") || req.staff?.role === "admin")) {
-        return res.status(403).json({ message: "Access denied! Unauthorized user." });
-    }
-
-    try {
-        const floor = await Floor.findById(req.params.id)
-            .populate("brand_id")
-            .populate("outlet_id");
-
-        if (!floor) {
-            return res.status(404).json({ message: "Floor not found" });
-        }
-
-        res.status(200).json({ message: "Floor fetched successfully", floor });
-    } catch (error) {
-        console.error("Error fetching floor:", error);
-        res.status(500).json({ message: "Error fetching floor", error });
     }
 });
 
