@@ -99,6 +99,9 @@ router.post(
             const newStaff = new Staff(staffData);
             await newStaff.save();
 
+            // Populate fields before sending response
+            await newStaff.populate("brands outlets role");
+
             res.status(201).json({
                 message: "Staff created successfully",
                 staff: { ...newStaff.toObject(), password: undefined, pos_login_pin: undefined },
@@ -137,7 +140,9 @@ router.put(
 
             const updatedStaff = await Staff.findByIdAndUpdate(staffId, updates, {
                 new: true,
-            }).select("-password -pos_login_pin");
+            })
+                .select("-password -pos_login_pin")
+                .populate("brands outlets role");
 
             if (!updatedStaff) {
                 return res.status(404).json({ message: "Staff not found" });

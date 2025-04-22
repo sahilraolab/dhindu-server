@@ -59,9 +59,11 @@ router.post("/", verifyToken, outletValidationRules, validateRequest, async (req
             { new: true }
         );
 
+        const populatedOutlet = await Outlet.findById(outlet._id).populate("brand_id");
+
         return res.status(201).json({
             message: "Outlet created successfully!",
-            outlet,
+            outlet: populatedOutlet,
             updatedStaff: staffUpdate || "Staff not found, but outlet created!",
         });
     } catch (error) {
@@ -100,8 +102,14 @@ router.put("/:id", verifyToken, async (req, res) => {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
-        const updatedOutlet = await Outlet.findByIdAndUpdate(id, req.body, { new: true });
-        return res.status(200).json({ message: "Outlet updated successfully!", outlet: updatedOutlet });
+        await Outlet.findByIdAndUpdate(id, req.body, { new: true });
+
+        const updatedOutlet = await Outlet.findById(id).populate("brand_id");
+
+        return res.status(200).json({
+            message: "Outlet updated successfully!",
+            outlet: updatedOutlet,
+        });
     } catch (error) {
         console.error("Error updating outlet:", error);
         return res.status(500).json({ message: "Server error! Unable to update outlet." });

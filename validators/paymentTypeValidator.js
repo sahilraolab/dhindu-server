@@ -1,7 +1,7 @@
 const { body } = require("express-validator");
 
 const createPaymentTypeValidator = [
-  body("payment_name")
+  body("name")
     .trim()
     .notEmpty().withMessage("Payment name is required")
     .isLength({ min: 3, max: 50 }).withMessage("Payment name must be between 3 and 50 characters"),
@@ -20,7 +20,7 @@ const createPaymentTypeValidator = [
 ];
 
 const updatePaymentTypeValidator = [
-  body("payment_name")
+  body("name")
     .optional()
     .trim()
     .isLength({ min: 3, max: 50 }).withMessage("Payment name must be between 3 and 50 characters"),

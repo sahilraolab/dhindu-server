@@ -73,13 +73,17 @@ app.get("/", (req, res) => {
   res.send("✅ POS API is running...");
 });
 
+const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
+
 app.get("/validate_token", async (req, res) => {
+
   const token = req.cookies.token;
+
   if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   try {
     // Verify the JWT token
-    const decoded = jwt.verify(token, "your_secret_key");
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     // Fetch staff details from the database and populate the role field
     const staff = await Staff.findById(decoded.id)

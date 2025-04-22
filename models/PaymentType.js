@@ -29,7 +29,7 @@ const PaymentTypeSchema = new mongoose.Schema(
 );
 
 // Unique payment name per brand
-PaymentTypeSchema.index({ brand_id: 1, name: 1 }, { unique: true });
+PaymentTypeSchema.index({ outlet_id: 1, name: 1 }, { unique: true });
 
 // Optimize queries
 PaymentTypeSchema.index({ brand_id: 1 });

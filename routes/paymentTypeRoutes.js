@@ -49,9 +49,9 @@ router.post(
         try {
             const { name, status, brand_id, outlet_id } = req.body;
 
-            const existing = await PaymentType.findOne({ name, brand_id });
+            const existing = await PaymentType.findOne({ name, outlet_id });
             if (existing) {
-                return res.status(400).json({ message: "Payment Type name already exists for this brand" });
+                return res.status(400).json({ message: "Payment Type name already exists for this Outlet" });
             }
 
             const newPaymentType = new PaymentType({ name, status, brand_id, outlet_id });

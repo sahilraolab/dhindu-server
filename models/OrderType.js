@@ -33,8 +33,8 @@ const OrderTypeSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Ensures uniqueness of order type name per brand
-OrderTypeSchema.index({ brand_id: 1, name: 1 }, { unique: true });
+OrderTypeSchema.index({ outlet_id: 1, category: 1, name: 1 }, { unique: true });
+
 
 // Optimized indexes for faster queries
 OrderTypeSchema.index({ brand_id: 1 });

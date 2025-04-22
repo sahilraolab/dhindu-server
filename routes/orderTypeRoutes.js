@@ -46,15 +46,38 @@ router.post(
         try {
             const { name, category, status, brand_id, outlet_id } = req.body;
 
-            const existingOrderType = await OrderType.findOne({ name, brand_id });
-            if (existingOrderType) {
-                return res.status(400).json({ message: "Order Type name already exists for this brand" });
+            // Step 1: Fetch all order types for the specific outlet
+            const outletOrderTypes = await OrderType.find({ outlet_id });
+
+            // Step 2: Check if this category already exists for this outlet
+            const categoryExists = outletOrderTypes.some(
+                (orderType) => orderType.category.toLowerCase() === category.toLowerCase()
+            );
+            if (categoryExists) {
+                return res.status(400).json({
+                    message: "This category already exists for the selected outlet",
+                });
             }
 
+            // Step 3: Check if this name is already used in any order type of the same outlet
+            const nameExists = outletOrderTypes.some(
+                (orderType) => orderType.name.toLowerCase() === name.toLowerCase()
+            );
+            if (nameExists) {
+                return res.status(400).json({
+                    message: "This name is already used for another order type in the outlet",
+                });
+            }
+
+            // Step 4: Proceed with creation
             const newOrderType = new OrderType({ name, category, status, brand_id, outlet_id });
             await newOrderType.save();
 
-            res.status(201).json({ message: "Order Type created successfully", orderType: newOrderType });
+            const populatedOrderType = await OrderType.findById(newOrderType._id)
+                .populate("brand_id")
+                .populate("outlet_id");
+
+            res.status(201).json({ message: "Order Type created successfully", orderType: populatedOrderType });
         } catch (error) {
             console.error("Error creating order type:", error);
             res.status(500).json({ message: "Error creating order type", error });
@@ -82,14 +105,30 @@ router.put(
                 return res.status(404).json({ message: "Order Type not found" });
             }
 
-            // Check for duplicate name in the same brand (only if name/brand changed)
-            if ((name && name !== orderType.name) || (brand_id && brand_id !== orderType.brand_id.toString())) {
-                const duplicate = await OrderType.findOne({ name, brand_id });
-                if (duplicate && duplicate._id.toString() !== orderTypeId) {
-                    return res.status(400).json({ message: "Order Type name already exists for this brand" });
-                }
+            // Fetch all order types for the given outlet
+            const outletOrderTypes = await OrderType.find({ outlet_id });
+
+            // Step 1: Check if the category already exists for the outlet
+            const categoryExists = outletOrderTypes.some(
+                (orderType) => orderType.category.toLowerCase() === category.toLowerCase() && orderType._id.toString() !== orderTypeId
+            );
+            if (categoryExists) {
+                return res.status(400).json({
+                    message: "This category already exists for the selected outlet",
+                });
             }
 
+            // Step 2: Check if the name already exists for this outlet
+            const nameExists = outletOrderTypes.some(
+                (orderType) => orderType.name.toLowerCase() === name.toLowerCase() && orderType._id.toString() !== orderTypeId
+            );
+            if (nameExists) {
+                return res.status(400).json({
+                    message: "This name is already used for another order type in the outlet",
+                });
+            }
+
+            // Step 3: Proceed with updating the order type
             orderType.name = name || orderType.name;
             orderType.category = category || orderType.category;
             orderType.status = status || orderType.status;
@@ -97,12 +136,18 @@ router.put(
             orderType.outlet_id = outlet_id || orderType.outlet_id;
 
             await orderType.save();
-            res.status(200).json({ message: "Order Type updated successfully", orderType });
+
+            const populatedOrderType = await OrderType.findById(orderType._id)
+                .populate("brand_id")
+                .populate("outlet_id");
+
+            res.status(200).json({ message: "Order Type updated successfully", orderType: populatedOrderType });
         } catch (error) {
             console.error("Error updating order type:", error);
             res.status(500).json({ message: "Error updating order type", error });
         }
     }
 );
+
 
 module.exports = router;
