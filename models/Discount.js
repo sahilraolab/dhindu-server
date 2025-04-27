@@ -19,55 +19,79 @@ const DiscountSchema = new mongoose.Schema(
             minlength: 3,
             maxlength: 100
         },
+
+        apply_type: {
+            type: String,
+            enum: ["discount", "coupon", "extra_charge"],
+            required: true
+        },
+
         apply_on_all_order_types: {
             type: Boolean,
             default: false
         },
-        order_types: [{
+        order_type: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "OrderType"
-        }],
-        rate: {
-            type: Number,
-            required: true,
-            min: 0
+            ref: "OrderType",
+            default: null
         },
+
+        apply_on_all_menus: {
+            type: Boolean,
+            default: false
+        },
+        menu: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Menu",
+            default: null
+        },
+
+        apply_on_all_categories: {
+            type: Boolean,
+            default: false
+        },
+        category: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+            default: null
+        },
+
+        apply_on_all_items: {
+            type: Boolean,
+            default: false
+        },
+        item: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Item",
+            default: null
+        },
+
         type: {
             type: String,
             enum: ["fixed", "percentage"],
             required: true
         },
-        apply_on_all_menus: {
-            type: Boolean,
-            default: false
+        rate: {
+            type: Number,
+            required: true,
+            min: 0
         },
-        menus: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Menu"
-        }],
-        apply_on_all_categories: {
-            type: Boolean,
-            default: false
-        },
-        categories: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Category"
-        }],
-        apply_on_all_items: {
-            type: Boolean,
-            default: false
-        },
-        items: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Item"
-        }],
+
         day: {
             type: String,
             enum: [
-                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "all_week"
+                "sunday",
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "all_week"
             ],
             required: true
         },
+
         start_time: {
             type: String,
             required: true,
@@ -84,28 +108,24 @@ const DiscountSchema = new mongoose.Schema(
                 message: props => `${props.value} is not a valid time format (HH:mm)!`
             }
         },
+
         status: {
             type: String,
             enum: ["active", "inactive"],
             default: "active"
         },
-        is_coupon: {
-            type: Boolean,
-            default: false
-        },
-        coupon_code: {
+
+        code: {
             type: String,
-            trim: true
-        },
-        is_extra_charge: {
-            type: Boolean,
-            default: false
+            default: ""
         }
     },
     { timestamps: true }
 );
 
-// Index for uniqueness
-DiscountSchema.index({ brand_id: 1, outlet_id: 1, name: 1, day: 1 }, { unique: true });
+DiscountSchema.index(
+    { brand_id: 1, outlet_id: 1, name: 1, day: 1 },
+    { unique: true }
+);
 
 module.exports = mongoose.model("Discount", DiscountSchema);

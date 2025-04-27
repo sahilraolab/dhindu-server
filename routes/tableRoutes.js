@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Fetch Tables for Staff's Brands & Outlets
 router.get("/staff-tables", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("settings_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -32,27 +32,30 @@ router.get("/staff-tables", verifyToken, async (req, res) => {
     }
 });
 
-
 // Create Table
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("settings_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
         const { brand_id, outlet_id, floor_id, table_name, sitting, type, status } = req.body;
 
-        // Validate table name uniqueness
-        const existingTable = await Table.findOne({ brand_id, outlet_id, table_name });
+        if (!brand_id || !outlet_id || !floor_id || !table_name || !sitting || !type) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        // Check for uniqueness of table_name within a floor
+        const existingTable = await Table.findOne({ floor_id, table_name: table_name.trim() });
         if (existingTable) {
-            return res.status(400).json({ message: "Table name already exists in the specified outlet" });
+            return res.status(400).json({ message: "Table name already exists on this floor" });
         }
 
         const newTable = new Table({
             brand_id,
             outlet_id,
             floor_id,
-            table_name,
+            table_name: table_name.trim(),
             sitting,
             type,
             status
@@ -60,7 +63,6 @@ router.post("/create", verifyToken, async (req, res) => {
 
         await newTable.save();
 
-        // Populate the newly created table
         const populatedTable = await Table.findById(newTable._id)
             .populate("brand_id")
             .populate("outlet_id")
@@ -75,7 +77,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Table
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("settings_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -85,7 +87,25 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Table not found" });
         }
 
-        Object.assign(table, req.body); // Update fields
+        const { table_name, floor_id } = req.body;
+
+        // If table_name or floor_id is being updated, check uniqueness
+        if ((table_name && table_name !== table.table_name) || (floor_id && floor_id !== table.floor_id.toString())) {
+            const nameToCheck = table_name ? table_name.trim() : table.table_name;
+            const floorToCheck = floor_id || table.floor_id;
+
+            const existing = await Table.findOne({
+                _id: { $ne: table._id },
+                floor_id: floorToCheck,
+                table_name: nameToCheck
+            });
+
+            if (existing) {
+                return res.status(400).json({ message: "Table name already exists on this floor" });
+            }
+        }
+
+        Object.assign(table, req.body);
         await table.save();
 
         const updatedTable = await Table.findById(table._id)
@@ -102,7 +122,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Table
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_delete"))) {
+    if (!req.staff?.permissions?.includes("table_delete")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -122,7 +142,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Tables
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_view"))) {
+    if (!req.staff?.permissions?.includes("table_view")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -141,7 +161,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Table
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("table_view"))) {
+    if (!req.staff?.permissions?.includes("table_view")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

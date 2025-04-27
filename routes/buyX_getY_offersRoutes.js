@@ -5,19 +5,32 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Buy X Get Y Offer
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("offers_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const existingOffer = await BuyXGetYOffer.findOne({ name: req.body.name, brand_id: req.body.brand_id, day: req.body.day });
+        const existingOffer = await BuyXGetYOffer.findOne({
+            name: req.body.name,
+            brand_id: req.body.brand_id,
+            outlet_id: req.body.outlet_id,
+            day: req.body.day
+        });
         if (existingOffer) {
-            return res.status(400).json({ message: "An offer with this name already exists for this brand on this day." });
+            return res.status(400).json({ message: "An offer with this name already exists for this brand and outlet on this day." });
         }
+
+        // Ensure start_time and end_time are Date objects
+        if (req.body.start_time) req.body.start_time = new Date(req.body.start_time);
+        if (req.body.end_time) req.body.end_time = new Date(req.body.end_time);
 
         const newOffer = new BuyXGetYOffer(req.body);
         await newOffer.save();
-        res.status(201).json({ message: "Offer created successfully", offer: newOffer });
+
+        const populatedOffer = await BuyXGetYOffer.findById(newOffer._id)
+            .populate("brand_id outlet_id menu_id buy_item get_item");
+
+        res.status(201).json({ message: "Offer created successfully", offer: populatedOffer });
     } catch (error) {
         console.error("Error creating offer:", error);
         res.status(500).json({ message: "Error creating offer", error });
@@ -26,7 +39,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Buy X Get Y Offer
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("offers_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -36,9 +49,16 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Offer not found" });
         }
 
-        Object.assign(offer, req.body); // Update fields
+        if (req.body.start_time) req.body.start_time = new Date(req.body.start_time);
+        if (req.body.end_time) req.body.end_time = new Date(req.body.end_time);
+
+        Object.assign(offer, req.body);
         await offer.save();
-        res.status(200).json({ message: "Offer updated successfully", offer });
+
+        const populatedOffer = await BuyXGetYOffer.findById(offer._id)
+            .populate("brand_id outlet_id menu_id buy_item get_item");
+
+        res.status(200).json({ message: "Offer updated successfully", offer: populatedOffer });
     } catch (error) {
         console.error("Error updating offer:", error);
         res.status(500).json({ message: "Error updating offer", error });
@@ -47,7 +67,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Buy X Get Y Offer
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("offers_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -65,37 +85,24 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     }
 });
 
-// Fetch All Buy X Get Y Offers
-router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("offers_view") || req.staff?.role === "admin")) {
+// Accessible Buy X Get Y Offers
+router.get("/accessible", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const offers = await BuyXGetYOffer.find().populate("brand_id outlet_id buy_items buy_categories buy_menus get_items order_types");
-        res.status(200).json({ message: "Offers fetched successfully", offers });
+        const { brands, outlets } = req.staff;
+
+        const offers = await BuyXGetYOffer.find({
+            brand_id: { $in: brands },
+            outlet_id: { $in: outlets }
+        }).populate("brand_id outlet_id menu_id buy_item get_item");
+
+        res.status(200).json({ message: "Accessible offers fetched successfully", offers });
     } catch (error) {
-        console.error("Error fetching offers:", error);
+        console.error("Error fetching accessible offers:", error);
         res.status(500).json({ message: "Error fetching offers", error });
-    }
-});
-
-// Fetch Single Buy X Get Y Offer
-router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("offers_view") || req.staff?.role === "admin")) {
-        return res.status(403).json({ message: "Access denied! Unauthorized user." });
-    }
-
-    try {
-        const offer = await BuyXGetYOffer.findById(req.params.id).populate("brand_id outlet_id buy_items buy_categories buy_menus get_items order_types");
-        if (!offer) {
-            return res.status(404).json({ message: "Offer not found" });
-        }
-
-        res.status(200).json({ message: "Offer fetched successfully", offer });
-    } catch (error) {
-        console.error("Error fetching offer:", error);
-        res.status(500).json({ message: "Error fetching offer", error });
     }
 });
 

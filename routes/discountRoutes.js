@@ -13,60 +13,58 @@ router.post("/create", verifyToken, async (req, res) => {
         const {
             brand_id,
             outlet_id,
-            apply_on_all_outlets,
             name,
+            apply_type,
             apply_on_all_order_types,
-            order_types,
+            order_type,
             rate,
             type,
             apply_on_all_menus,
-            menus,
+            menu,
             apply_on_all_categories,
-            categories,
+            category,
             apply_on_all_items,
-            items,
+            item,
             day,
             start_time,
             end_time,
-            status,
-            is_coupon,
-            coupon_code,
-            is_extra_charge,
+            code,
+            status
         } = req.body;
 
-        // Check if the discount name already exists for the brand and outlet
         const existingDiscount = await Discount.findOne({ brand_id, outlet_id, name, day });
         if (existingDiscount) {
             return res.status(400).json({ message: "Discount already exists for this brand and outlet on this day" });
         }
 
-        // Create new discount
         const newDiscount = new Discount({
             brand_id,
             outlet_id,
-            apply_on_all_outlets,
             name,
+            apply_type,
             apply_on_all_order_types,
-            order_types,
+            order_type,
             rate,
             type,
             apply_on_all_menus,
-            menus,
+            menu,
             apply_on_all_categories,
-            categories,
+            category,
             apply_on_all_items,
-            items,
+            item,
             day,
             start_time,
             end_time,
-            status,
-            is_coupon,
-            coupon_code,
-            is_extra_charge,
+            code,
+            status
         });
 
         await newDiscount.save();
-        res.status(201).json({ message: "Discount created successfully", discount: newDiscount });
+
+        const populatedDiscount = await Discount.findById(newDiscount._id)
+            .populate("brand_id outlet_id order_type menu category item");
+
+        res.status(201).json({ message: "Discount created successfully", discount: populatedDiscount });
     } catch (error) {
         console.error("Error creating discount:", error);
         res.status(500).json({ message: "Error creating discount", error });
@@ -80,62 +78,30 @@ router.put("/update/:id", verifyToken, async (req, res) => {
     }
 
     try {
-        const {
-            brand_id,
-            outlet_id,
-            apply_on_all_outlets,
-            name,
-            apply_on_all_order_types,
-            order_types,
-            rate,
-            type,
-            apply_on_all_menus,
-            menus,
-            apply_on_all_categories,
-            categories,
-            apply_on_all_items,
-            items,
-            day,
-            start_time,
-            end_time,
-            status,
-            is_coupon,
-            coupon_code,
-            is_extra_charge,
-        } = req.body;
-        const discountId = req.params.id;
-
-        // Check if the discount exists
-        const discount = await Discount.findById(discountId);
+        const discount = await Discount.findById(req.params.id);
         if (!discount) {
             return res.status(404).json({ message: "Discount not found" });
         }
 
-        // Update the discount
-        discount.brand_id = brand_id || discount.brand_id;
-        discount.outlet_id = outlet_id || discount.outlet_id;
-        discount.apply_on_all_outlets = apply_on_all_outlets || discount.apply_on_all_outlets;
-        discount.name = name || discount.name;
-        discount.apply_on_all_order_types = apply_on_all_order_types || discount.apply_on_all_order_types;
-        discount.order_types = order_types || discount.order_types;
-        discount.rate = rate || discount.rate;
-        discount.type = type || discount.type;
-        discount.apply_on_all_menus = apply_on_all_menus || discount.apply_on_all_menus;
-        discount.menus = menus || discount.menus;
-        discount.apply_on_all_categories = apply_on_all_categories || discount.apply_on_all_categories;
-        discount.categories = categories || discount.categories;
-        discount.apply_on_all_items = apply_on_all_items || discount.apply_on_all_items;
-        discount.items = items || discount.items;
-        discount.day = day || discount.day;
-        discount.start_time = start_time || discount.start_time;
-        discount.end_time = end_time || discount.end_time;
-        discount.status = status || discount.status;
-        discount.is_coupon = is_coupon || discount.is_coupon;
-        discount.coupon_code = coupon_code || discount.coupon_code;
-        discount.is_extra_charge = is_extra_charge || discount.is_extra_charge;
+        const fields = [
+            "brand_id", "outlet_id", "name", "apply_type",
+            "apply_on_all_order_types", "order_type", "rate", "type",
+            "apply_on_all_menus", "menu", "apply_on_all_categories", "category",
+            "apply_on_all_items", "item", "day", "start_time", "end_time", "code", "status"
+        ];
+
+        for (const field of fields) {
+            if (req.body.hasOwnProperty(field)) {
+                discount[field] = req.body[field];
+            }
+        }
 
         await discount.save();
-        res.status(200).json({ message: "Discount updated successfully", discount });
+
+        const populatedDiscount = await Discount.findById(discount._id)
+            .populate("brand_id outlet_id order_type menu category item");
+
+        res.status(200).json({ message: "Discount updated successfully", discount: populatedDiscount });
     } catch (error) {
         console.error("Error updating discount:", error);
         res.status(500).json({ message: "Error updating discount", error });
@@ -149,16 +115,12 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     }
 
     try {
-        const discountId = req.params.id;
-
-        // Check if the discount exists
-        const discount = await Discount.findById(discountId);
+        const discount = await Discount.findById(req.params.id);
         if (!discount) {
             return res.status(404).json({ message: "Discount not found" });
         }
 
-        // Delete the discount
-        await Discount.findByIdAndDelete(discountId);
+        await Discount.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: "Discount deleted successfully" });
     } catch (error) {
         console.error("Error deleting discount:", error);
@@ -166,14 +128,37 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
     }
 });
 
-// Fetch All Discounts
+// Accessible Discounts
+router.get("/accessible", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const { brands, outlets } = req.staff;
+
+        const discounts = await Discount.find({
+            brand_id: { $in: brands },
+            outlet_id: { $in: outlets }
+        }).populate("brand_id outlet_id order_type menu category item");
+
+        res.status(200).json({ message: "Accessible discounts fetched successfully", discounts });
+    } catch (error) {
+        console.error("Error fetching accessible discounts:", error);
+        res.status(500).json({ message: "Error fetching discounts", error });
+    }
+});
+
+// All Discounts
 router.get("/all", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("discounts_view") || req.staff?.role === "admin")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const discounts = await Discount.find().populate("brand_id").populate("outlet_id").populate("order_types").populate("menus").populate("categories").populate("items");
+        const discounts = await Discount.find()
+            .populate("brand_id outlet_id order_type menu category item");
+
         res.status(200).json({ message: "Discounts fetched successfully", discounts });
     } catch (error) {
         console.error("Error fetching discounts:", error);
@@ -181,23 +166,15 @@ router.get("/all", verifyToken, async (req, res) => {
     }
 });
 
-// Fetch Single Discount
+// Single Discount
 router.get("/:id", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("discounts_view") || req.staff?.role === "admin")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const discountId = req.params.id;
-
-        // Check if the discount exists
-        const discount = await Discount.findById(discountId)
-            .populate("brand_id")
-            .populate("outlet_id")
-            .populate("order_types")
-            .populate("menus")
-            .populate("categories")
-            .populate("items");
+        const discount = await Discount.findById(req.params.id)
+            .populate("brand_id outlet_id order_type menu category item");
 
         if (!discount) {
             return res.status(404).json({ message: "Discount not found" });

@@ -5,7 +5,6 @@ const { verifyToken } = require("../middleware/authMiddleware");
 const validateRequest = require("../middleware/validateRequest");
 const { validateCreateTax, validateUpdateTax } = require("../validators/taxValidator");
 
-
 // Fetch Taxes for current staff's brands & outlets
 router.get("/accessible", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("settings_manage"))) {
@@ -42,9 +41,10 @@ router.post("/create", verifyToken, validateCreateTax, validateRequest, async (r
     try {
         const { tax_name, tax_value, display_tax_name, status, brand_id, outlet_id } = req.body;
 
-        const existingTax = await Tax.findOne({ tax_name, brand_id });
-        if (existingTax) {
-            return res.status(400).json({ message: "Tax name already exists for this brand" });
+        // Check if the outlet already has a tax assigned
+        const existingTaxForOutlet = await Tax.findOne({ outlet_id });
+        if (existingTaxForOutlet) {
+            return res.status(400).json({ message: "This outlet already has a tax assigned" });
         }
 
         const newTax = new Tax({
@@ -57,7 +57,13 @@ router.post("/create", verifyToken, validateCreateTax, validateRequest, async (r
         });
 
         await newTax.save();
-        res.status(201).json({ message: "Tax created successfully", tax: newTax });
+
+        // Populate brand_id and outlet_id fields
+        const populatedTax = await Tax.findById(newTax._id)
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(201).json({ message: "Tax created successfully", tax: populatedTax });
     } catch (error) {
         console.error("Error creating tax:", error);
         res.status(500).json({ message: "Error creating tax", error });
@@ -79,6 +85,7 @@ router.put("/update/:id", verifyToken, validateUpdateTax, validateRequest, async
             return res.status(404).json({ message: "Tax not found" });
         }
 
+        // No need to check for existing tax on the outlet because the tax can be updated
         tax.tax_name = tax_name;
         tax.tax_value = tax_value;
         tax.display_tax_name = display_tax_name;
@@ -87,7 +94,13 @@ router.put("/update/:id", verifyToken, validateUpdateTax, validateRequest, async
         tax.outlet_id = outlet_id;
 
         await tax.save();
-        res.status(200).json({ message: "Tax updated successfully", tax });
+
+        // Populate brand_id and outlet_id fields
+        const populatedTax = await Tax.findById(tax._id)
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(200).json({ message: "Tax updated successfully", tax: populatedTax });
     } catch (error) {
         console.error("Error updating tax:", error);
         res.status(500).json({ message: "Error updating tax", error });

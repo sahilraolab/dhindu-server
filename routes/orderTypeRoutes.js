@@ -149,5 +149,35 @@ router.put(
     }
 );
 
+// Fetch OrderTypes by brand_id and outlet_id
+router.get("/by-brand-outlet", verifyToken, async (req, res) => {
+    const { brand_id, outlet_id } = req.query;
+
+    if (!brand_id || !outlet_id) {
+        return res.status(400).json({ message: "brand_id and outlet_id are required." });
+    }
+
+    if (!(req.staff?.permissions?.includes("orders_view") || req.staff?.role === "admin")) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const orderTypes = await OrderType.find({ brand_id, outlet_id })
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(200).json({
+            message: "Order types fetched successfully",
+            orderTypes,
+        });
+    } catch (error) {
+        console.error("Error fetching order types by brand and outlet:", error);
+        res.status(500).json({
+            message: "Error fetching order types",
+            error: error.message || error,
+        });
+    }
+});
+
 
 module.exports = router;

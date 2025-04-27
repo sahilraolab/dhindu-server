@@ -22,21 +22,24 @@ const AddonSchema = new mongoose.Schema(
         menu_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Menu",
-            required: false // made optional
+            required: false,
+            default: null
         },
         category_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
-            required: false // made optional
+            required: false,
+            default: null
         },
-        items: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Item"
-            }
-        ],
+        item: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Item",
+            required: false,
+            default: null
+        },
         all_items: {
             type: Boolean,
+            required: false,
             default: false
         },
         price: {
@@ -53,7 +56,7 @@ const AddonSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Index to ensure unique name per outlet
-AddonSchema.index({ brand_id: 1, outlet_id: 1, name: 1 }, { unique: true });
+// 👇 Index for unique name per outlet
+AddonSchema.index({ outlet_id: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model("Addon", AddonSchema);

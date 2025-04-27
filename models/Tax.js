@@ -40,8 +40,7 @@ const TaxSchema = new mongoose.Schema(
 );
 
 // **Indexes for performance & uniqueness**
-TaxSchema.index({ brand_id: 1, tax_name: 1 }, { unique: true });
 TaxSchema.index({ brand_id: 1 });
-TaxSchema.index({ outlet_id: 1 });
+TaxSchema.index({ outlet_id: 1 }, { unique: true });  // Ensure only one tax per outlet
 
 module.exports = mongoose.model("Tax", TaxSchema);

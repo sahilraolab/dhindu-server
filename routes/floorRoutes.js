@@ -24,7 +24,7 @@ router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
                 brand_id: { $in: staffBrands },
                 outlet_id: { $in: staffOutlets },
             },
-            "_id floor_name"
+            "_id floor_name outlet_id"
         );
 
         res.status(200).json({ message: "Floors fetched successfully", floors });

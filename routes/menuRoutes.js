@@ -118,6 +118,38 @@ router.put("/update/:id", verifyToken, async (req, res) => {
     }
 });
 
+
+// Fetch menus by brand_id and outlet_id
+router.get("/by-brand-outlet", verifyToken, async (req, res) => {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const { brand_id, outlet_id } = req.query;
+
+        if (!brand_id || !outlet_id) {
+            return res.status(400).json({ message: "Both brand_id and outlet_id are required" });
+        }
+
+        const menus = await Menu.find({ brand_id, outlet_id })
+            .populate("brand_id")
+            .populate("outlet_id");
+
+        res.status(200).json({
+            message: "Menus fetched successfully for the selected brand and outlet",
+            menus,
+        });
+    } catch (error) {
+        console.error("Error fetching menus by brand and outlet:", error);
+        res.status(500).json({
+            message: "Error fetching menus",
+            error: error.message || error,
+        });
+    }
+});
+
+
 // Delete Menu
 router.delete("/delete/:id", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("menus_delete"))) {
@@ -177,5 +209,8 @@ router.get("/:id", verifyToken, async (req, res) => {
         res.status(500).json({ message: "Error fetching menu", error: error.message || error });
     }
 });
+
+
+
 
 module.exports = router;

@@ -12,18 +12,12 @@ const CustomerSchema = new mongoose.Schema(
             ref: "Outlet",
             required: false // Customers can be global (brand-level) or specific to an outlet
         },
-        first_name: {
+        name: {  // ✅ Replaced first_name and last_name with name
             type: String,
             required: true,
             trim: true,
             minlength: 2,
-            maxlength: 50
-        },
-        last_name: {
-            type: String,
-            trim: true,
-            minlength: 2,
-            maxlength: 50
+            maxlength: 100
         },
         email: {
             type: String,
@@ -40,32 +34,34 @@ const CustomerSchema = new mongoose.Schema(
         },
         phone: {
             type: String,
-            required: true,
+            required: false,
             unique: true,
             trim: true,
             validate: {
                 validator: function (v) {
-                    return /^\d{10,15}$/.test(v); // Supports 10 to 15 digit phone numbers
+                    return /^\d{3}-\d{3}-\d{4}$/.test(v); // Must match ###-###-####
                 },
-                message: props => `${props.value} is not a valid phone number!`
+                message: props => `${props.value} is not a valid phone number format! (Expected ###-###-####)`
             }
         },
         dob: {
-            type: Date,
+            type: String, // Change type from Date to String
+            trim: true,
             validate: {
                 validator: function (value) {
-                    return !value || value < new Date(); // Date of birth cannot be in the future
+                    return !value || /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{2}$/.test(value);
                 },
-                message: "Date of birth cannot be in the future."
+                message: "Date of birth must be in MM/DD/YY format."
             }
         },
         anniversary_date: {
-            type: Date,
+            type: String, // Change type from Date to String
+            trim: true,
             validate: {
                 validator: function (value) {
-                    return !value || value < new Date(); // Anniversary date cannot be in the future
+                    return !value || /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{2}$/.test(value);
                 },
-                message: "Anniversary date cannot be in the future."
+                message: "Anniversary date must be in MM/DD/YY format."
             }
         },
         address: {

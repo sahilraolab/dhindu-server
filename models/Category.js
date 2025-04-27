@@ -12,11 +12,6 @@ const CategorySchema = new mongoose.Schema(
             ref: "Outlet",
             required: true
         },
-        menu_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Menu",
-            required: true
-        },
         name: {
             type: String,
             required: true,
@@ -26,9 +21,7 @@ const CategorySchema = new mongoose.Schema(
         },
         day: {
             type: String,
-            enum: [
-                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
-            ],
+            enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
             required: false
         },
         start_time: {
@@ -60,9 +53,7 @@ const CategorySchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Updated compound index to include menu_id
-CategorySchema.index(
-    { brand_id: 1, outlet_id: 1, menu_id: 1, name: 1, day: 1 }
-);
+// ✅ Unique category name per outlet
+CategorySchema.index({ outlet_id: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model("Category", CategorySchema);

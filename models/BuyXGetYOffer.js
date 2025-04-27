@@ -57,24 +57,12 @@ const BuyXGetYSchema = new mongoose.Schema(
             required: true
         },
         start_time: {
-            type: String,
-            required: true,
-            validate: {
-                validator: function (v) {
-                    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
-                },
-                message: props => `${props.value} is not a valid time format (HH:mm)!`
-            }
+            type: Date,
+            required: true
         },
         end_time: {
-            type: String,
-            required: true,
-            validate: {
-                validator: function (v) {
-                    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
-                },
-                message: props => `${props.value} is not a valid time format (HH:mm)!`
-            }
+            type: Date,
+            required: true
         },
         status: {
             type: String,

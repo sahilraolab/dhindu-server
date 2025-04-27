@@ -20,13 +20,13 @@ const TableSchema = new mongoose.Schema(
     table_name: {
       type: String,
       required: true,
-      trim: true,
-      unique: true // Ensure table name is unique for the outlet
+      trim: true
+      // Removed global unique constraint here
     },
     sitting: {
       type: Number,
       required: true,
-      min: 1 // Minimum seating capacity of 1
+      min: 1
     },
     type: {
       type: String,
@@ -36,13 +36,16 @@ const TableSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["active", "inactive"],
-      default: "active" // Default status is active
+      default: "active"
     }
   },
   { timestamps: true }
 );
 
-// **Indexes for Optimized Queries**
+// ✅ Compound index to enforce uniqueness of table_name per floor
+TableSchema.index({ floor_id: 1, table_name: 1 }, { unique: true });
+
+// Other helpful indexes
 TableSchema.index({ brand_id: 1, outlet_id: 1, floor_id: 1, status: 1 });
 
 module.exports = mongoose.model("Table", TableSchema);

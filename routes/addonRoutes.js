@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Addon
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("addons_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -16,17 +16,16 @@ router.post("/create", verifyToken, async (req, res) => {
             outlet_id,
             menu_id = null,
             category_id = null,
-            items = [],
+            item = null,
             price,
             status = "active",
             all_items = false
         } = req.body;
 
-
-        // Check for existing addon
-        const existingAddon = await Addon.findOne({ brand_id, outlet_id, name });
+        const existingAddon = await Addon.findOne({ outlet_id, name });
+        console.log(existingAddon)
         if (existingAddon) {
-            return res.status(400).json({ message: "Addon with this name already exists for this brand and outlet." });
+            return res.status(400).json({ message: "Addon with this name already exists for this outlet." });
         }
 
         const newAddon = new Addon({
@@ -35,14 +34,25 @@ router.post("/create", verifyToken, async (req, res) => {
             outlet_id,
             menu_id,
             category_id,
-            items,
+            item,
             price,
             status,
             all_items
         });
 
         await newAddon.save();
-        res.status(201).json({ message: "Addon created successfully", addon: newAddon });
+
+        const populatedAddon = await Addon.findById(newAddon._id)
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("menu_id")
+            .populate("category_id")
+            .populate("item");
+
+        res.status(201).json({
+            message: "Addon created successfully",
+            addon: populatedAddon
+        });
     } catch (error) {
         console.error("Error creating addon:", error);
         res.status(500).json({ message: "Error creating addon", error });
@@ -51,7 +61,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Addon
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("addons_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("settings_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -61,12 +71,43 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Addon not found" });
         }
 
-        if ('items' in req.body && !Array.isArray(req.body.items)) {
-            return res.status(400).json({ message: "'items' should be an array" });
-        }
+        const {
+            name,
+            brand_id,
+            outlet_id,
+            menu_id = null,
+            category_id = null,
+            item = null,
+            price,
+            status = "active",
+            all_items = false
+        } = req.body;
+
+        Object.assign(addon, {
+            name,
+            brand_id,
+            outlet_id,
+            menu_id,
+            category_id,
+            item,
+            price,
+            status,
+            all_items
+        });
 
         await addon.save();
-        res.status(200).json({ message: "Addon updated successfully", addon });
+
+        const populatedAddon = await Addon.findById(addon._id)
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("menu_id")
+            .populate("category_id")
+            .populate("item");
+
+        res.status(200).json({
+            message: "Addon updated successfully",
+            addon: populatedAddon
+        });
     } catch (error) {
         console.error("Error updating addon:", error);
         res.status(500).json({ message: "Error updating addon", error });
@@ -110,7 +151,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
             .populate("outlet_id")
             .populate("menu_id")
             .populate("category_id")
-            .populate("items");
+            .populate("item");
 
         res.status(200).json({
             message: "Accessible addons fetched successfully",
