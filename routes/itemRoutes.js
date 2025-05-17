@@ -6,7 +6,7 @@ const Category = require("../models/Category");
 
 // Upsert Items (Single or Bulk)
 router.post("/upsert", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -151,7 +151,7 @@ router.post("/upsert", verifyToken, async (req, res) => {
 
 // Delete Item
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -171,7 +171,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch items by menu_id with category_name populated (category name only)
 router.get("/menu/:menu_id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

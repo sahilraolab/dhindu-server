@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Fetch Menus accessible to the current staff
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -32,7 +32,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
 
 // Create Menu
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -77,7 +77,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Menu
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -121,7 +121,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Fetch menus by brand_id and outlet_id
 router.get("/by-brand-outlet", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -172,7 +172,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Menus
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -190,7 +190,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Menu
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("menu_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

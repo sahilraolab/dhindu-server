@@ -40,7 +40,7 @@ const OrderSchema = new mongoose.Schema(
             amount: { type: Number, min: 0, default: 0 }
         },
         extra_charge: {
-            charge_id: { type: mongoose.Schema.Types.ObjectId, ref: "ExtraCharge", required: false },
+            charge_id: { type: mongoose.Schema.Types.ObjectId, ref: "Discount", required: false },
             amount: { type: Number, min: 0, default: 0 }
         },
         total_amount: {

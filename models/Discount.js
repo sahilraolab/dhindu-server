@@ -89,25 +89,25 @@ const DiscountSchema = new mongoose.Schema(
                 "saturday",
                 "all_week"
             ],
-            required: true
         },
 
         start_time: {
             type: String,
-            required: true,
+            default: "",
             validate: {
-                validator: v => /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
-                message: props => `${props.value} is not a valid time format (HH:mm)!`
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
+                message: props => `${props.value} is not a valid time format (HH:mm) or empty!`
             }
         },
         end_time: {
             type: String,
-            required: true,
+            default: "",
             validate: {
-                validator: v => /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
-                message: props => `${props.value} is not a valid time format (HH:mm)!`
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
+                message: props => `${props.value} is not a valid time format (HH:mm) or empty!`
             }
         },
+
 
         status: {
             type: String,

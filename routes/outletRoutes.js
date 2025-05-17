@@ -9,15 +9,36 @@ const { verifyToken } = require("../middleware/authMiddleware");
 const validateRequest = require("../middleware/validateRequest");
 const { outletValidationRules } = require("../validators/outletValidator");
 
+// 🔄 Shared helper to assign outlet to admin staff under same owner
+async function assignOutletToAdmins(outletId, ownerId) {
+    const staff = await Staff.find({ owner_id: ownerId }).populate("role");
+
+    const adminIds = staff
+        .filter(s => s.role?.name?.toLowerCase() === "admin")
+        .map(s => s._id);
+
+    if (adminIds.length > 0) {
+        await Staff.updateMany(
+            { _id: { $in: adminIds } },
+            { $addToSet: { outlets: outletId } }
+        );
+    }
+}
+
 // ✅ Create an Outlet & Update Staff
 router.post("/", verifyToken, outletValidationRules, validateRequest, async (req, res) => {
     try {
+        if (!req.staff?.permissions?.includes("outlet_manage")) {
+            return res.status(403).json({ message: "Access denied! Unauthorized user." });
+        }
+
         const {
             brand_id,
             name,
             code,
             email,
             phone,
+            country_code,
             timezone,
             opening_time,
             closing_time,
@@ -27,11 +48,8 @@ router.post("/", verifyToken, outletValidationRules, validateRequest, async (req
             state,
             country,
             postal_code,
+            status
         } = req.body;
-
-        if (!req.staff?.permissions?.includes("staff_manage")) {
-            return res.status(403).json({ message: "Access denied! Unauthorized user." });
-        }
 
         const brand = await Brand.findById(brand_id);
         if (!brand) return res.status(404).json({ message: "Brand not found!" });
@@ -42,6 +60,7 @@ router.post("/", verifyToken, outletValidationRules, validateRequest, async (req
             code,
             email,
             phone,
+            country_code,
             timezone,
             opening_time,
             closing_time,
@@ -51,20 +70,22 @@ router.post("/", verifyToken, outletValidationRules, validateRequest, async (req
             state,
             country,
             postal_code,
+            status: status || "active"
         });
 
-        const staffUpdate = await Staff.findByIdAndUpdate(
+        // Assign outlet to all admin staff under same owner
+        await assignOutletToAdmins(outlet._id, brand.owner_id);
+
+        // Also assign to the creating staff
+        await Staff.findByIdAndUpdate(
             req.staff.id,
-            { $push: { outlets: outlet._id } },
+            { $addToSet: { outlets: outlet._id } },
             { new: true }
         );
 
-        const populatedOutlet = await Outlet.findById(outlet._id).populate("brand_id");
-
         return res.status(201).json({
             message: "Outlet created successfully!",
-            outlet: populatedOutlet,
-            updatedStaff: staffUpdate || "Staff not found, but outlet created!",
+            outlet
         });
     } catch (error) {
         console.error("Error creating outlet:", error);
@@ -72,22 +93,8 @@ router.post("/", verifyToken, outletValidationRules, validateRequest, async (req
     }
 });
 
-// ✅ Get Only Assigned Outlets
-router.get("/", verifyToken, async (req, res) => {
-    try {
-        if (!req.staff?.outlets?.length)
-            return res.status(403).json({ message: "Access denied! No outlets assigned." });
-
-        const outlets = await Outlet.find({ _id: { $in: req.staff.outlets } }).populate("brand_id");
-        return res.status(200).json(outlets);
-    } catch (error) {
-        console.error("Error fetching outlets:", error);
-        return res.status(500).json({ message: "Server error! Unable to fetch outlets." });
-    }
-});
-
 // ✅ Update Outlet by ID
-router.put("/:id", verifyToken, async (req, res) => {
+router.put("/:id", verifyToken, outletValidationRules, validateRequest, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -95,16 +102,18 @@ router.put("/:id", verifyToken, async (req, res) => {
         if (!outlet) return res.status(404).json({ message: "Outlet not found!" });
 
         const hasAccess =
-            req.staff?.permissions?.includes("staff_manage") ||
+            req.staff?.permissions?.includes("outlet_manage") ||
             req.staff.outlets.map((o) => o.toString()).includes(id);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
-        await Outlet.findByIdAndUpdate(id, req.body, { new: true });
-
-        const updatedOutlet = await Outlet.findById(id).populate("brand_id");
+        const updatedOutlet = await Outlet.findByIdAndUpdate(
+            id,
+            req.body,
+            { new: true }
+        );
 
         return res.status(200).json({
             message: "Outlet updated successfully!",
@@ -113,26 +122,6 @@ router.put("/:id", verifyToken, async (req, res) => {
     } catch (error) {
         console.error("Error updating outlet:", error);
         return res.status(500).json({ message: "Server error! Unable to update outlet." });
-    }
-});
-
-// ✅ Get All Assigned Outlets (Only ID & Name)
-router.get("/assigned/outlets", verifyToken, async (req, res) => {
-    try {
-        if (!req.staff?.outlets?.length)
-            return res.status(403).json({ message: "Access denied! No outlets assigned." });
-
-        const outlets = await Outlet.find(
-            { _id: { $in: req.staff.outlets } },
-            { _id: 1, name: 1, brand_id: 1 }
-        );
-
-        return res
-            .status(200)
-            .json(outlets.length ? outlets : { message: "No outlets found for assigned outlets." });
-    } catch (error) {
-        console.error("Error fetching assigned outlets:", error);
-        return res.status(500).json({ message: "Server error! Unable to fetch outlets." });
     }
 });
 

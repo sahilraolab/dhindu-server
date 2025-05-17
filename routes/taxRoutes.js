@@ -7,7 +7,7 @@ const { validateCreateTax, validateUpdateTax } = require("../validators/taxValid
 
 // Fetch Taxes for current staff's brands & outlets
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -34,7 +34,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
 
 // Create Tax
 router.post("/create", verifyToken, validateCreateTax, validateRequest, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -72,7 +72,7 @@ router.post("/create", verifyToken, validateCreateTax, validateRequest, async (r
 
 // Update Tax
 router.put("/update/:id", verifyToken, validateUpdateTax, validateRequest, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -109,7 +109,7 @@ router.put("/update/:id", verifyToken, validateUpdateTax, validateRequest, async
 
 // Delete Tax
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -131,7 +131,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Taxes
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -146,7 +146,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Tax
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("tax_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

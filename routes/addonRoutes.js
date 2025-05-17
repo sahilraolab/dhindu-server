@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Addon
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("addon_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -61,7 +61,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Addon
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("addon_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -116,7 +116,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Addon
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("addons_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("addon_manage") || req.staff?.role === "admin")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -136,7 +136,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Accessible Addons for staff
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("addon_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

@@ -7,7 +7,7 @@ const { orderTypeValidationRules } = require("../validators/orderTypeValidator")
 
 // Fetch OrderTypes accessible to the current staff
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("orders_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("order_type_manage") || req.staff?.role === "admin")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -39,7 +39,7 @@ router.post(
     orderTypeValidationRules,
     validateRequest,
     async (req, res) => {
-        if (!(req.staff?.permissions?.includes("orders_edit") || req.staff?.role === "admin")) {
+        if (!(req.staff?.permissions?.includes("order_type_manage") || req.staff?.role === "admin")) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -92,7 +92,7 @@ router.put(
     orderTypeValidationRules,
     validateRequest,
     async (req, res) => {
-        if (!(req.staff?.permissions?.includes("orders_edit") || req.staff?.role === "admin")) {
+        if (!(req.staff?.permissions?.includes("order_type_manage") || req.staff?.role === "admin")) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -157,7 +157,7 @@ router.get("/by-brand-outlet", verifyToken, async (req, res) => {
         return res.status(400).json({ message: "brand_id and outlet_id are required." });
     }
 
-    if (!(req.staff?.permissions?.includes("orders_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("order_type_manage") || req.staff?.role === "admin")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

@@ -7,7 +7,7 @@ const { floorCreateValidation, floorUpdateValidation } = require("../validators/
 
 // Fetch Only Floor Name and ID for Staff's Brands & Outlets
 router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("floor_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -36,7 +36,7 @@ router.get("/staff-floors/shorts", verifyToken, async (req, res) => {
 
 // Fetch Floors with populated brand and outlet
 router.get("/staff-floors", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("floor_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -64,7 +64,7 @@ router.get("/staff-floors", verifyToken, async (req, res) => {
 
 // Create Floor with uniqueness check
 router.post("/create", verifyToken, floorCreateValidation, validateRequest, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("floor_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -93,7 +93,7 @@ router.post("/create", verifyToken, floorCreateValidation, validateRequest, asyn
 
 // Update Floor with uniqueness check
 router.put("/update/:id", verifyToken, floorUpdateValidation, validateRequest, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("floor_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -135,7 +135,7 @@ router.put("/update/:id", verifyToken, floorUpdateValidation, validateRequest, a
 
 // Delete Floor
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("floor_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("floor_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

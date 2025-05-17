@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Fetch Tables for Staff's Brands & Outlets
 router.get("/staff-tables", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("settings_manage")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -34,7 +34,7 @@ router.get("/staff-tables", verifyToken, async (req, res) => {
 
 // Create Table
 router.post("/create", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("settings_manage")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -77,7 +77,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Table
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("settings_manage")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -122,7 +122,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Table
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("table_delete")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -142,7 +142,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Tables
 router.get("/all", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("table_view")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -161,7 +161,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Table
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!req.staff?.permissions?.includes("table_view")) {
+    if (!req.staff?.permissions?.includes("table_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

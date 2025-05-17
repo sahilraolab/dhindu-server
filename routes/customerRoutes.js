@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Upsert Customers (Bulk)
 router.post("/upsert", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_edit"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -17,21 +17,45 @@ router.post("/upsert", verifyToken, async (req, res) => {
     // Upsert added customers
     for (const customerData of addedCustomers) {
         try {
-            const { name, email, phone, dob, anniversary_date, address = {}, status = "active" } = customerData;
+            const { name, email, country_code, phone, dob, anniversary_date, address = {}, status = "active" } = customerData;
 
-            // Check for duplicate email or phone for the same brand
-            const duplicateCustomer = await Customer.findOne({
-                brand_id,
-                $or: [
-                    { email: email || null },
-                    { phone: phone || null }
-                ]
-            });
-
-            if (duplicateCustomer) {
-                failed.push({ data: customerData, error: "Duplicate email or phone found for this brand." });
+            if (!name || name.length < 2) {
+                failed.push({ data: customerData, error: "Customer name is required and must be at least 2 characters." });
                 continue;
             }
+
+            if (!email && !phone) {
+                failed.push({ data: customerData, error: "Either email or phone must be provided." });
+                continue;
+            }
+
+            const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{2}$/;
+            if (dob && !dateRegex.test(dob)) {
+                failed.push({ data: customerData, error: "Date of Birth must be in MM/DD/YY format." });
+                continue;
+            }
+            if (anniversary_date && !dateRegex.test(anniversary_date)) {
+                failed.push({ data: customerData, error: "Anniversary Date must be in MM/DD/YY format." });
+                continue;
+            }
+
+            // Check for duplicates if email or phone are provided
+            const duplicate = await Customer.findOne({
+                brand_id,
+                $or: [
+                    email ? { email } : null,
+                    phone ? { phone } : null
+                ].filter(Boolean)
+            });
+
+            if (duplicate) {
+                const conflictFields = [];
+                if (duplicate.email === email) conflictFields.push("email");
+                if (duplicate.phone === phone) conflictFields.push("phone");
+                failed.push({ data: customerData, error: `Duplicate ${conflictFields.join(" and ")} found for this brand.` });
+                continue;
+            }
+
 
             const newCustomerData = {
                 brand_id,
@@ -39,10 +63,11 @@ router.post("/upsert", verifyToken, async (req, res) => {
                 name,
                 email: email || undefined,
                 phone: phone || undefined,
+                country_code,
                 dob: dob || "",
                 anniversary_date: anniversary_date || "",
-                address: address || {},
-                status: status || "active"
+                address,
+                status
             };
 
             const newCustomer = new Customer(newCustomerData);
@@ -64,15 +89,19 @@ router.post("/upsert", verifyToken, async (req, res) => {
 
 // Create Customer
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_edit"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const { brand_id, outlet_id, name, email, phone, dob, anniversary_date, address, order_history, status } = req.body;
+        const { brand_id, outlet_id, name, email, country_code, phone, dob, anniversary_date, address, order_history, status } = req.body;
 
-        if (!name || name.length < 2) {
-            return res.status(400).json({ message: "Customer name is required and must be at least 2 characters." });
+        if (!brand_id || !name || name.length < 2) {
+            return res.status(400).json({ message: "Brand ID and valid name are required." });
+        }
+
+        if (!email && !phone) {
+            return res.status(400).json({ message: "Either email or phone must be provided." });
         }
 
         const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{2}$/;
@@ -102,6 +131,7 @@ router.post("/create", verifyToken, async (req, res) => {
             outlet_id,
             name,
             email,
+            country_code,
             phone,
             dob,
             anniversary_date,
@@ -112,7 +142,6 @@ router.post("/create", verifyToken, async (req, res) => {
 
         await newCustomer.save();
 
-        // Populate brand_id, outlet_id, and order_history.order_id
         const populatedCustomer = await Customer.findById(newCustomer._id)
             .populate("brand_id", "name")
             .populate("outlet_id", "name")
@@ -127,7 +156,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Customer
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_edit"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -137,7 +166,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Customer not found" });
         }
 
-        const { name, email, phone, dob, anniversary_date, brand_id } = req.body;
+        const { name, email, country_code, phone, dob, anniversary_date, brand_id } = req.body;
 
         if (name && name.length < 2) {
             return res.status(400).json({ message: "Customer name must be at least 2 characters." });
@@ -151,15 +180,27 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(400).json({ message: "Anniversary Date must be in MM/DD/YY format." });
         }
 
+        const effectiveBrandId = brand_id || customer.brand_id;
+        const newEmail = email !== undefined ? email : customer.email;
+        const newPhone = phone !== undefined ? phone : customer.phone;
+
+        if (!newEmail && !newPhone) {
+            return res.status(400).json({ message: "Either email or phone must be provided." });
+        }
+
+        if (!country_code) {
+            return res.status(400).json({ message: "Country code is required." });
+        }
+
         if (phone && phone !== customer.phone) {
-            const existingPhoneCustomer = await Customer.findOne({ phone, brand_id: brand_id || customer.brand_id });
+            const existingPhoneCustomer = await Customer.findOne({ phone, brand_id: effectiveBrandId });
             if (existingPhoneCustomer) {
                 return res.status(400).json({ message: "Another customer with this phone already exists for this brand." });
             }
         }
 
         if (email && email !== customer.email) {
-            const existingEmailCustomer = await Customer.findOne({ email, brand_id: brand_id || customer.brand_id });
+            const existingEmailCustomer = await Customer.findOne({ email, brand_id: effectiveBrandId });
             if (existingEmailCustomer) {
                 return res.status(400).json({ message: "Another customer with this email already exists for this brand." });
             }
@@ -168,7 +209,6 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         Object.assign(customer, req.body);
         await customer.save();
 
-        // Populate brand_id, outlet_id, and order_history.order_id after update
         const populatedCustomer = await Customer.findById(customer._id)
             .populate("brand_id", "name")
             .populate("outlet_id", "name")
@@ -208,7 +248,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
 
 // Delete Customer
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_delete"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -229,7 +269,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Fetch All Customers
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_view"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -248,7 +288,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Fetch Single Customer
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("customers_view"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

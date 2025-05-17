@@ -3,9 +3,12 @@ const router = express.Router();
 const Category = require("../models/Category");
 const { verifyToken } = require("../middleware/authMiddleware");
 
-// Fetch Categories for current staff's brands & outlets
+// ✅ Valid day values
+const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+// GET Accessible Categories
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("category_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -15,9 +18,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
         const categories = await Category.find({
             brand_id: { $in: brands },
             outlet_id: { $in: outlets }
-        })
-            .populate("brand_id")
-            .populate("outlet_id");
+        }).populate("brand_id").populate("outlet_id");
 
         res.status(200).json({
             message: "Accessible categories fetched successfully",
@@ -32,27 +33,32 @@ router.get("/accessible", verifyToken, async (req, res) => {
     }
 });
 
-// Create Category
+// POST Create Category
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("category_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const { brand_id, outlet_id, name, day, start_time, end_time, status } = req.body;
+        const {
+            brand_id,
+            outlet_id,
+            name,
+            day = null,
+            start_time = "",
+            end_time = "",
+            status
+        } = req.body;
 
         if (!brand_id || !outlet_id || !name) {
             return res.status(400).json({ message: "brand_id, outlet_id, and name are required fields." });
         }
 
-        // Validate day is one of the allowed strings (optional here, Mongoose handles it)
-        const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         if (day && !validDays.includes(day)) {
             return res.status(400).json({ message: "Invalid day value provided." });
         }
 
         const existingCategory = await Category.findOne({ outlet_id, name });
-
         if (existingCategory) {
             return res.status(400).json({
                 message: "Category name must be unique within the same outlet."
@@ -87,9 +93,9 @@ router.post("/create", verifyToken, async (req, res) => {
     }
 });
 
-// Update Category
+// PUT Update Category
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("category_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -99,15 +105,20 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Category not found" });
         }
 
-        const { outlet_id, name, day } = req.body;
+        const {
+            outlet_id,
+            name,
+            day = null,
+            start_time = "",
+            end_time = "",
+            status
+        } = req.body;
 
-        // Validate day if passed
-        const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         if (day && !validDays.includes(day)) {
             return res.status(400).json({ message: "Invalid day value provided." });
         }
 
-        // Only check uniqueness if name or outlet_id changed
+        // Unique check
         if ((name && name !== category.name) || (outlet_id && outlet_id.toString() !== category.outlet_id.toString())) {
             const existingCategory = await Category.findOne({
                 _id: { $ne: category._id },
@@ -122,7 +133,16 @@ router.put("/update/:id", verifyToken, async (req, res) => {
             }
         }
 
-        Object.assign(category, req.body);
+        Object.assign(category, {
+            brand_id: req.body.brand_id ?? category.brand_id,
+            outlet_id: outlet_id ?? category.outlet_id,
+            name: name ?? category.name,
+            day,
+            start_time,
+            end_time,
+            status
+        });
+
         await category.save();
 
         const updatedCategory = await Category.findById(category._id)
@@ -141,9 +161,9 @@ router.put("/update/:id", verifyToken, async (req, res) => {
     }
 });
 
-// Fetch Categories by Outlet ID
+// GET Categories by Outlet ID
 router.get("/by-outlet/:outletId", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!req.staff?.permissions?.includes("category_manage")) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

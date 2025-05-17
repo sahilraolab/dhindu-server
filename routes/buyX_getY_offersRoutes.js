@@ -5,24 +5,25 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Buy X Get Y Offer
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("buyxgety_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
     try {
-        const existingOffer = await BuyXGetYOffer.findOne({
-            name: req.body.name,
-            brand_id: req.body.brand_id,
-            outlet_id: req.body.outlet_id,
-            day: req.body.day
-        });
-        if (existingOffer) {
-            return res.status(400).json({ message: "An offer with this name already exists for this brand and outlet on this day." });
-        }
+        const { name, brand_id, outlet_id, day } = req.body;
 
-        // Ensure start_time and end_time are Date objects
-        if (req.body.start_time) req.body.start_time = new Date(req.body.start_time);
-        if (req.body.end_time) req.body.end_time = new Date(req.body.end_time);
+        const existingOffer = await BuyXGetYOffer.findOne({
+            name,
+            brand_id,
+            outlet_id,
+            ...(day !== undefined ? { day } : { day: null })
+        });
+
+        if (existingOffer) {
+            return res.status(400).json({
+                message: "An offer with this name already exists for this brand and outlet on this day."
+            });
+        }
 
         const newOffer = new BuyXGetYOffer(req.body);
         await newOffer.save();
@@ -39,7 +40,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Buy X Get Y Offer
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("buyxgety_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -48,9 +49,6 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         if (!offer) {
             return res.status(404).json({ message: "Offer not found" });
         }
-
-        if (req.body.start_time) req.body.start_time = new Date(req.body.start_time);
-        if (req.body.end_time) req.body.end_time = new Date(req.body.end_time);
 
         Object.assign(offer, req.body);
         await offer.save();
@@ -67,7 +65,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Buy X Get Y Offer
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("buyxgety_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -87,7 +85,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Accessible Buy X Get Y Offers
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("buyxgety_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

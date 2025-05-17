@@ -10,7 +10,7 @@ const {
 
 // Fetch accessible PaymentTypes
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("payment_type_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -42,7 +42,7 @@ router.post(
     createPaymentTypeValidator,
     validateRequest,
     async (req, res) => {
-        if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        if (!(req.staff?.permissions?.includes("payment_type_manage"))) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 
@@ -72,7 +72,7 @@ router.put(
     updatePaymentTypeValidator,
     validateRequest,
     async (req, res) => {
-        if (!(req.staff?.permissions?.includes("settings_manage"))) {
+        if (!(req.staff?.permissions?.includes("payment_type_manage"))) {
             return res.status(403).json({ message: "Access denied! Unauthorized user." });
         }
 

@@ -10,9 +10,9 @@ const CustomerSchema = new mongoose.Schema(
         outlet_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Outlet",
-            required: false // Customers can be global (brand-level) or specific to an outlet
+            required: false
         },
-        name: {  // ✅ Replaced first_name and last_name with name
+        name: {
             type: String,
             required: true,
             trim: true,
@@ -23,8 +23,6 @@ const CustomerSchema = new mongoose.Schema(
             type: String,
             trim: true,
             lowercase: true,
-            unique: true,
-            sparse: true, // Allows multiple customers without email, but unique if provided
             validate: {
                 validator: function (v) {
                     return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -34,18 +32,15 @@ const CustomerSchema = new mongoose.Schema(
         },
         phone: {
             type: String,
-            required: false,
-            unique: true,
-            trim: true,
-            validate: {
-                validator: function (v) {
-                    return /^\d{3}-\d{3}-\d{4}$/.test(v); // Must match ###-###-####
-                },
-                message: props => `${props.value} is not a valid phone number format! (Expected ###-###-####)`
-            }
+            trim: true
+        },
+        country_code: {
+            type: String,
+            required: true,
+            trim: true
         },
         dob: {
-            type: String, // Change type from Date to String
+            type: String,
             trim: true,
             validate: {
                 validator: function (value) {
@@ -55,7 +50,7 @@ const CustomerSchema = new mongoose.Schema(
             }
         },
         anniversary_date: {
-            type: String, // Change type from Date to String
+            type: String,
             trim: true,
             validate: {
                 validator: function (value) {
@@ -87,8 +82,7 @@ const CustomerSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// **Indexes for Optimized Queries & Uniqueness**
-CustomerSchema.index({ phone: 1, brand_id: 1 }, { unique: true }); // Prevent duplicate phone numbers per brand
-CustomerSchema.index({ email: 1, brand_id: 1 }, { unique: true, sparse: true }); // Unique emails if provided
+// Removed schema-level validation (pre hook) and unique indexes
+// because duplicates are handled in API logic
 
 module.exports = mongoose.model("Customer", CustomerSchema);

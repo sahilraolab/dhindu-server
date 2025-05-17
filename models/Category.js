@@ -22,25 +22,21 @@ const CategorySchema = new mongoose.Schema(
         day: {
             type: String,
             enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-            required: false
+            default: null
         },
         start_time: {
             type: String,
-            required: false,
+            default: "",
             validate: {
-                validator: function (v) {
-                    return !v || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
-                },
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
                 message: props => `${props.value} is not a valid time format (HH:mm)!`
             }
         },
         end_time: {
             type: String,
-            required: false,
+            default: "",
             validate: {
-                validator: function (v) {
-                    return !v || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v);
-                },
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
                 message: props => `${props.value} is not a valid time format (HH:mm)!`
             }
         },

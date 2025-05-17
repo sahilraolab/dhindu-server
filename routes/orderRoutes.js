@@ -131,6 +131,47 @@ router.get("/all", verifyToken, async (req, res) => {
     }
 });
 
+// Fetch Orders accessible to the current staff
+router.get("/accessible", verifyToken, async (req, res) => {
+    // Check if the staff has 'orders_manage' permission
+    if (!(req.staff?.permissions?.includes("orders_view"))) {
+        return res.status(403).json({ message: "Access denied! Unauthorized user." });
+    }
+
+    try {
+        const { brands, outlets } = req.staff;
+
+        // Build the query for finding orders for the assigned brands and outlets
+        const query = {
+            brand_id: { $in: brands },
+            outlet_id: { $in: outlets }
+        };
+
+        // Fetch orders, populate necessary fields, and optimize the query by using indexes
+        const orders = await Order.find(query)
+            .populate("brand_id")
+            .populate("outlet_id")
+            .populate("customer_id") // Populate customer details
+            .populate("order_type_id") // Populate order type details
+            .populate("payment_type_id") // Populate payment type details
+            .populate("discount.discount_id") // Populate discount details
+            .populate("extra_charge.charge_id") // Populate extra charge details
+            .populate("items.item_id") // Populate item details
+            .populate("items.addons") // Populate addon details if needed
+
+        res.status(200).json({
+            message: "Accessible orders fetched successfully",
+            orders,
+        });
+    } catch (error) {
+        console.error("Error fetching accessible orders:", error);
+        res.status(500).json({
+            message: "Error fetching orders",
+            error: error.message || error,
+        });
+    }
+});
+
 // Fetch Single Order
 router.get("/:id", verifyToken, async (req, res) => {
     if (!(req.staff?.permissions?.includes("orders_view") || req.staff?.role === "admin")) {

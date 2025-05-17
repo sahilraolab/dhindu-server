@@ -28,9 +28,13 @@ const paymentTypeRoutes = require("./routes/paymentTypeRoutes");
 const tableRoutes = require("./routes/tableRoutes");
 const taxRoutes = require("./routes/taxRoutes");
 const addonRoutes = require("./routes/addonRoutes");
+const whatsappRoutes = require("./routes/whatsAppRoutes");
+const newUserSetup = require("./routes/insertFirstSetupData");
+const uploadRoutes = require('./routes/upload');
+
 
 const { insertPermissions, insertDefaultRoles } = require("./permissionsRolesSetup");
-const { insertFirstSetupData } = require("./insertFirstSetupData");
+const { insertFirstSetupData } = require("./routes/insertFirstSetupData");
 
 const app = express();
 
@@ -52,6 +56,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static('uploads'));
 
 // MongoDB Connection
 mongoose
@@ -61,7 +66,6 @@ mongoose
 
     // await insertPermissions();
     // await insertDefaultRoles();
-    // await insertFirstSetupData();
 
   })
   .catch((err) => {
@@ -88,7 +92,9 @@ app.get("/validate_token", async (req, res) => {
     // Fetch staff details from the database and populate the role field
     const staff = await Staff.findById(decoded.id)
       .select("-password") // Exclude password for security
-      .populate("role"); // Populate the role field with full role info
+      .populate("role") // Populate the role field with full role info
+      .populate("brands") // Populate the role field with full role info
+      .populate("outlets"); // Populate the role field with full role info
 
     if (!staff) {
       return res.status(404).json({ message: "Staff not found" });
@@ -137,6 +143,9 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/buyX-getY-offers", buyXgetYoffersRoutes);
 app.use("/api/addons", addonRoutes);
+app.use("/api/whatsapp", whatsappRoutes);
+app.use("/api/new-user-setup", newUserSetup);
+app.use('/api/upload', uploadRoutes);
 
 
 // Define the PORT

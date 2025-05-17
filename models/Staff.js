@@ -6,6 +6,11 @@ const StaffSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
+    country_code: {
+      type: String,
+      required: true,
+      trim: true
+    },
     password: { type: String, required: true }, // Hashed password
     pos_login_pin: { type: String }, // Optional
     status: { type: String, enum: ["active", "inactive"], default: "active" },
@@ -13,6 +18,7 @@ const StaffSchema = new mongoose.Schema(
     permissions: [{ type: String, required: true }],
     brands: [{ type: mongoose.Schema.Types.ObjectId, ref: "Brand" }],
     outlets: [{ type: mongoose.Schema.Types.ObjectId, ref: "Outlet" }],
+    owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "Owner" },
   },
   { timestamps: true }
 );

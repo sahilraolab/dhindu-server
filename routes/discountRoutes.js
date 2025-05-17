@@ -5,7 +5,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create Discount
 router.post("/create", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -15,10 +15,10 @@ router.post("/create", verifyToken, async (req, res) => {
             outlet_id,
             name,
             apply_type,
+            type,
+            rate,
             apply_on_all_order_types,
             order_type,
-            rate,
-            type,
             apply_on_all_menus,
             menu,
             apply_on_all_categories,
@@ -32,6 +32,11 @@ router.post("/create", verifyToken, async (req, res) => {
             status
         } = req.body;
 
+        // Ensure required fields
+        if (!brand_id || !outlet_id || !name || !apply_type || !type || rate === undefined) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
         const existingDiscount = await Discount.findOne({ brand_id, outlet_id, name, day });
         if (existingDiscount) {
             return res.status(400).json({ message: "Discount already exists for this brand and outlet on this day" });
@@ -42,10 +47,10 @@ router.post("/create", verifyToken, async (req, res) => {
             outlet_id,
             name,
             apply_type,
+            type,
+            rate,
             apply_on_all_order_types,
             order_type,
-            rate,
-            type,
             apply_on_all_menus,
             menu,
             apply_on_all_categories,
@@ -73,7 +78,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
 // Update Discount
 router.put("/update/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("discounts_edit") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -91,7 +96,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
         ];
 
         for (const field of fields) {
-            if (req.body.hasOwnProperty(field)) {
+            if (req.body.hasOwnProperty(field) && req.body[field] !== undefined) {
                 discount[field] = req.body[field];
             }
         }
@@ -110,7 +115,7 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 // Delete Discount
 router.delete("/delete/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("discounts_delete") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -130,7 +135,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 
 // Accessible Discounts
 router.get("/accessible", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("settings_manage"))) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -151,7 +156,7 @@ router.get("/accessible", verifyToken, async (req, res) => {
 
 // All Discounts
 router.get("/all", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("discounts_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 
@@ -168,7 +173,7 @@ router.get("/all", verifyToken, async (req, res) => {
 
 // Single Discount
 router.get("/:id", verifyToken, async (req, res) => {
-    if (!(req.staff?.permissions?.includes("discounts_view") || req.staff?.role === "admin")) {
+    if (!(req.staff?.permissions?.includes("discount_manage"))) {
         return res.status(403).json({ message: "Access denied! Unauthorized user." });
     }
 

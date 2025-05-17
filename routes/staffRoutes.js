@@ -23,7 +23,11 @@ router.post("/login", validateLogin, validateRequest, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const staff = await Staff.findOne({ email }).select("+password").populate("role");
+        const staff = await Staff.findOne({ email })
+            .populate("role")
+            .populate("brands")
+            .populate("outlets");
+
         if (!staff) {
             return res.status(400).json({ message: "Invalid email or password" });
         }
@@ -43,12 +47,20 @@ router.post("/login", validateLogin, validateRequest, async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "Strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
+
+        // Convert to plain object and remove sensitive fields
+        const staffData = staff.toObject();
+        delete staffData.password;
+        delete staffData.pos_login_pin;
+        delete staffData.__v;
+        delete staffData.$__;
 
         res.json({
             message: "Login successful",
-            staff: { ...staff.toObject(), password: undefined },
+            token,
+            staff: staffData,
         });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
@@ -70,9 +82,12 @@ router.post(
                 name,
                 email,
                 phone,
+                country_code,
+                image,
                 password,
                 pos_login_pin,
                 role,
+                owner_id,
                 permissions,
                 brands,
                 outlets,
@@ -81,12 +96,15 @@ router.post(
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
 
-            const staffData = {
+            let staffData = {
                 name,
                 email,
+                image,
                 phone,
+                country_code,
                 password: hashedPassword,
                 role,
+                owner_id,
                 permissions,
                 brands,
                 outlets,
@@ -94,6 +112,28 @@ router.post(
 
             if (pos_login_pin) {
                 staffData.pos_login_pin = await bcrypt.hash(pos_login_pin, salt);
+            }
+
+            // ✅ Check if role is admin and override brands/outlets
+            if (role) {
+                const StaffModel = require("../models/Staff");
+                const RoleStaff = await StaffModel.findById(role).populate("role");
+                const roleName = RoleStaff?.role?.name?.toLowerCase();
+
+                if (roleName === "admin") {
+                    const Brand = require("../models/Brand");
+                    const Outlet = require("../models/Outlet");
+
+                    const brandList = await Brand.find({ owner_id });
+                    const brandIds = brandList.map(b => b._id);
+
+                    const outletList = await Outlet.find({ brand_id: { $in: brandIds } });
+                    const outletIds = outletList.map(o => o._id);
+
+                    // 🔄 Override manual values
+                    staffData.brands = brandIds;
+                    staffData.outlets = outletIds;
+                }
             }
 
             const newStaff = new Staff(staffData);
@@ -104,7 +144,11 @@ router.post(
 
             res.status(201).json({
                 message: "Staff created successfully",
-                staff: { ...newStaff.toObject(), password: undefined, pos_login_pin: undefined },
+                staff: {
+                    ...newStaff.toObject(),
+                    password: undefined,
+                    pos_login_pin: undefined,
+                },
             });
         } catch (error) {
             res.status(500).json({ message: "Error creating staff", error: error.message });
@@ -124,36 +168,78 @@ router.put(
     async (req, res) => {
         try {
             const staffId = req.params.id;
-            const updates = { ...req.body };
+            const loggedInStaff = req.staff;
+            const updatePayload = { ...req.body };
 
             const salt = await bcrypt.genSalt(10);
 
-            if (updates.password) {
-                updates.password = await bcrypt.hash(updates.password, salt);
+            // Hash password and pos_login_pin if provided
+            if (updatePayload.password) {
+                updatePayload.password = await bcrypt.hash(updatePayload.password, salt);
             }
-
-            if (updates.pos_login_pin) {
-                updates.pos_login_pin = await bcrypt.hash(updates.pos_login_pin, salt);
+            if (updatePayload.pos_login_pin) {
+                updatePayload.pos_login_pin = await bcrypt.hash(updatePayload.pos_login_pin, salt);
             } else {
-                delete updates.pos_login_pin;
+                delete updatePayload.pos_login_pin;
             }
 
-            const updatedStaff = await Staff.findByIdAndUpdate(staffId, updates, {
-                new: true,
-            })
-                .select("-password -pos_login_pin")
-                .populate("brands outlets role");
+            const existingStaff = await Staff.findById(staffId).populate("role");
 
-            if (!updatedStaff) {
+            if (!existingStaff) {
                 return res.status(404).json({ message: "Staff not found" });
             }
 
+            const isAdmin = existingStaff.role?.name?.toLowerCase() === "admin";
+            const isSelfUpdate = loggedInStaff._id.toString() === staffId.toString();
+
+            // ✋ Prevent non-self admins from editing restricted fields
+            if (isAdmin && isSelfUpdate) {
+                // Allow only personal info updates
+                delete updatePayload.role;
+                delete updatePayload.permissions;
+                delete updatePayload.brands;
+                delete updatePayload.outlets;
+            }
+
+            // ✅ If role is being changed TO admin, assign all brands/outlets under owner's ID
+            if (updatePayload.role && !isAdmin) {
+                const newRoleStaff = await Staff.findById(updatePayload.role).populate("role");
+                const newRoleName = newRoleStaff?.role?.name?.toLowerCase();
+
+                if (newRoleName === "admin") {
+                    const Brand = require("../models/Brand");
+                    const Outlet = require("../models/Outlet");
+
+                    // Use owner_id from request body (new owner) or fallback to existing
+                    const ownerId = updatePayload.owner_id || existingStaff.owner_id;
+
+                    const allBrands = await Brand.find({ owner_id: ownerId });
+                    const brandIds = allBrands.map(b => b._id);
+
+                    const allOutlets = await Outlet.find({ brand_id: { $in: brandIds } });
+                    const outletIds = allOutlets.map(o => o._id);
+
+                    updatePayload.brands = brandIds;
+                    updatePayload.outlets = outletIds;
+                }
+            }
+
+            const updatedStaff = await Staff.findByIdAndUpdate(
+                staffId,
+                updatePayload,
+                { new: true }
+            )
+                .select("-password -pos_login_pin")
+                .populate("brands outlets role");
+
             res.json({ message: "Staff updated successfully", staff: updatedStaff });
         } catch (error) {
+            console.error("Update Staff Error:", error.message);
             res.status(500).json({ message: "Error updating staff", error: error.message });
         }
     }
 );
+
 
 /**
  * Fetch Staff by Brand and Outlet
@@ -199,7 +285,7 @@ router.get("/staff/authorized", verifyToken, async (req, res) => {
 
         const staff = await Staff.find({
             brands: { $in: currentUser.brands },
-            outlets: { $in: currentUser.outlets },
+            // outlets: { $in: currentUser.outlets },
         })
             .populate("brands outlets role")
             .select("-password -pos_login_pin");

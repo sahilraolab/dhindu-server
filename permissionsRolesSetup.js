@@ -3,80 +3,74 @@ const Role = require("./models/Role");
 
 const defaultPermissions = [
   { category: "Dashboard", options: ["dashboard_view"] },
-  { category: "Orders", options: ["orders_view", "orders_edit", "orders_delete"] },
-  { category: "Sales", options: ["sales_view", "sales_create", "sales_edit", "sales_delete"] },
-  { category: "Customers", options: ["customers_view", "customers_edit", "customers_delete"] },
-  { category: "Inventory", options: ["inventory_view", "inventory_edit", "inventory_delete"] },
-  { category: "Settings", options: ["settings_manage"] },
-  { category: "Reports", options: ["reports_view", "reports_edit", "reports_delete"] },
-  { category: "Staff Management", options: ["staff_manage"] },
-  {
-    category: "Brand Configuration",
-    options: [
-      "brand_manage",
-      "outlet_manage",
-      "order_type_manage",
-      "payment_type_manage",
-      "tax_manage",
-      "table_manage",
-      "discount_manage",
-      "buyxgety_offer_manage",
-      "menu_manage",
-      "whatsapp_manage",
-    ]
-  }
+  { category: "Brand Configuration", options: [
+    "brand_manage", "staff_manage", "outlet_manage", "order_type_manage", "payment_type_manage"
+  ]},
+  { category: "Master Configuration", options: [
+    "tax_manage", "floor_manage", "table_manage", "discount_manage", "buyxgety_manage"
+  ]},
+  { category: "Menu Configuration", options: [
+    "category_manage", "menu_manage", "addon_manage"
+  ]},
+  { category: "CRM", options: [
+    "customers_view", "customers_edit", "customers_delete",
+    "orders_view", "orders_edit", "orders_delete",
+    "whatsapp_manage"
+  ]}
 ];
+
 
 const defaultRoles = [
   {
     name: "Admin",
     default_permissions: [
-      "dashboard_view", "orders_view", "orders_edit", "orders_delete",
-      "sales_view", "sales_create", "sales_edit", "sales_delete",
+      "dashboard_view",
+      "brand_manage", "staff_manage", "outlet_manage", "order_type_manage", "payment_type_manage",
+      "tax_manage", "floor_manage", "table_manage", "discount_manage", "buyxgety_manage",
+      "category_manage", "menu_manage", "addon_manage",
       "customers_view", "customers_edit", "customers_delete",
-      "inventory_view", "inventory_edit", "inventory_delete",
-      "settings_manage", "reports_view", "reports_edit", "reports_delete",
-      "staff_manage",
-      "brand_manage", "outlet_manage", "order_type_manage", "payment_type_manage",
-      "tax_manage", "table_manage", "discount_manage", "buyxgety_offer_manage",
-      "menu_manage", "whatsapp_manage"
+      "orders_view", "orders_edit", "orders_delete",
+      "whatsapp_manage"
     ],
   },
   {
     name: "Manager",
     default_permissions: [
-      "dashboard_view", "orders_view", "orders_edit",
-      "sales_view", "sales_create", "sales_edit",
+      "dashboard_view",
+      "staff_manage", "outlet_manage", "order_type_manage", "payment_type_manage",
+      "floor_manage", "table_manage", "discount_manage",
+      "category_manage", "menu_manage",
       "customers_view", "customers_edit",
-      "inventory_view", "inventory_edit",
-      "reports_view", "reports_edit",
-      "outlet_manage", "order_type_manage", "payment_type_manage",
-      "discount_manage", "menu_manage", "whatsapp_manage"
+      "orders_view", "orders_edit",
+      "whatsapp_manage"
     ],
   },
   {
     name: "Cashier",
     default_permissions: [
-      "dashboard_view", "orders_view",
-      "sales_view", "sales_create", "customers_view"
+      "dashboard_view",
+      "orders_view", "orders_edit",
+      "customers_view", "sales_create" // include if needed
     ],
   },
   {
     name: "Inventory Manager",
     default_permissions: [
-      "inventory_view", "inventory_edit", "inventory_delete",
-      "reports_view",
-      "menu_manage"
+      "category_manage", "menu_manage", "addon_manage",
+      "floor_manage", "table_manage", "tax_manage",
+      "buyxgety_manage"
     ],
   },
   {
     name: "Staff",
     default_permissions: [
-      "dashboard_view", "orders_view",
-      "sales_view", "customers_view"
+      "dashboard_view",
+      "orders_view",
+      "customers_view"
     ],
   }
 ];
+
 
 const insertPermissions = async () => {
   try {

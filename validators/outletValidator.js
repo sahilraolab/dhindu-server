@@ -5,9 +5,7 @@ const outletValidationRules = [
   body("name").notEmpty().withMessage("Outlet name is required."),
   body("code").notEmpty().withMessage("Outlet code is required."),
   body("email").isEmail().withMessage("A valid email is required."),
-  body("phone")
-    .matches(/^\d{3}-\d{3}-\d{4}$/)
-    .withMessage("Phone must be in the format ###-###-####."),
+  body("phone").notEmpty().withMessage("Phone is required."),
   body("timezone.label").notEmpty().withMessage("Timezone label is required."),
   body("timezone.value").notEmpty().withMessage("Timezone value is required."),
   body("opening_time")

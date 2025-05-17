@@ -8,9 +8,7 @@ const validateLogin = [
 const validateCreateStaff = [
     body("name").notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
-    body("phone")
-        .matches(/^\d{3}-\d{3}-\d{4}$/)
-        .withMessage("Phone must be in the format ###-###-####."),
+    body("phone").notEmpty().withMessage("Phone is required."),
     body("password")
         .isLength({ min: 6 })
         .withMessage("Password must be at least 6 characters"),
@@ -24,10 +22,7 @@ const validateCreateStaff = [
 
 const validateUpdateStaff = [
     body("email").optional().isEmail().withMessage("Valid email is required"),
-    body("phone")
-        .optional()
-        .matches(/^\d{3}-\d{3}-\d{4}$/)
-        .withMessage("Phone must be in the format ###-###-####."),
+    body("phone").notEmpty().withMessage("Phone is required."),
     body("password")
         .optional()
         .isLength({ min: 6 })

@@ -52,17 +52,26 @@ const BuyXGetYSchema = new mongoose.Schema(
         day: {
             type: String,
             enum: [
-                "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "all_week"
+                "sunday", "monday", "tuesday", "wednesday", "thursday",
+                "friday", "saturday", "all_week"
             ],
-            required: true
+            default: null
         },
         start_time: {
-            type: Date,
-            required: true
+            type: String,
+            default: "",
+            validate: {
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
+                message: props => `${props.value} is not a valid time format (HH:mm) or empty!`
+            }
         },
         end_time: {
-            type: Date,
-            required: true
+            type: String,
+            default: "",
+            validate: {
+                validator: v => v === "" || /^([01]\d|2[0-3]):([0-5]\d)$/.test(v),
+                message: props => `${props.value} is not a valid time format (HH:mm) or empty!`
+            }
         },
         status: {
             type: String,
@@ -73,7 +82,10 @@ const BuyXGetYSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Unique index
-BuyXGetYSchema.index({ brand_id: 1, outlet_id: 1, name: 1, day: 1 }, { unique: true });
+// Unique index only when 'day' is a string
+BuyXGetYSchema.index(
+    { brand_id: 1, outlet_id: 1, name: 1, day: 1 },
+    { unique: true, partialFilterExpression: { day: { $type: "string" } } }
+);
 
 module.exports = mongoose.model("BuyXGetYOffer", BuyXGetYSchema);
